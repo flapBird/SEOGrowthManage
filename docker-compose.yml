@@ -1,7 +1,7 @@
 services:
   backlink-manager:
     build: .
-    container_name: backlink-manager
+    container_name: SEOGrowthManage
     restart: unless-stopped
     env_file: .env
     ports:
