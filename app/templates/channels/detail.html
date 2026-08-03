@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ channel.name }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">渠道详情</p><h1>{{ channel.name }}</h1><p><a href="{{ channel.url }}" target="_blank" rel="noopener">{{ channel.url }}</a></p></div><div class="actions"><a class="button" href="/records?channel_id={{ channel.id }}">渠道发布看板</a><a class="button primary" href="/channels/{{ channel.id }}/edit">编辑渠道</a></div></div>
+<div class="grid-two">
+<section class="panel detail-list"><h2>基本信息</h2><dl><dt>类型</dt><dd>{{ channel_type_labels[channel.channel_type] }}</dd><dt>状态</dt><dd><span class="badge channel-{{ channel.status.value }}">{{ channel_status_labels[channel.status] }}</span></dd><dt>自动化</dt><dd>{{ '支持 · ' ~ (channel.adapter_key or '未选择适配器') if channel.supports_automation else '不支持' }}</dd><dt>备注</dt><dd>{{ channel.notes or '—' }}</dd></dl></section>
+<section class="panel"><div class="panel-head"><h2>登录凭据</h2>{% if channel.credential %}<form method="post" action="/channels/{{ channel.id }}/credential/delete" onsubmit="return confirm('确定删除凭据？')"><button class="danger-link">删除凭据</button></form>{% endif %}</div>
+  <p class="muted">敏感字段使用 Fernet 加密存储；留空则保留原值。</p>
+  <form method="post" action="/channels/{{ channel.id }}/credential" class="stack">
+    <label>用户名<input name="username" value="{{ channel.credential.username or '' if channel.credential else '' }}" autocomplete="off"></label>
+    <label>密码<input type="password" name="password" value="" placeholder="{{ '******（留空不修改）' if channel.credential and channel.credential.encrypted_password else '输入密码' }}" autocomplete="new-password"></label>
+    <label>API Key（可选）<input type="password" name="api_key" value="" placeholder="{{ '******（留空不修改）' if channel.credential and channel.credential.encrypted_extra_fields else '输入 API Key' }}" autocomplete="off"></label>
+    <button class="primary" type="submit">加密保存凭据</button>
+  </form>
+</section></div>
+<section class="danger-zone"><h2>危险操作</h2><form method="post" action="/channels/{{ channel.id }}/delete" onsubmit="return confirm('将同时删除凭据、发布记录和任务，确定吗？')"><button class="danger">删除此渠道</button></form></section>
+{% endblock %}
+

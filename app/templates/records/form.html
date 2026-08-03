@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑' if record else '登记' }}发布记录{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">发布记录</p><h1>{{ '编辑发布记录' if record else '登记发布记录' }}</h1></div></div>
+<form class="panel form-card stack" method="post" action="{{ '/records/' ~ record.id if record else '/records' }}">
+  <input type="hidden" name="exclude_id" value="{{ record.id if record else '' }}">
+  <div class="form-grid">
+    <label>目标网站<select id="target-site" name="target_site_id" required hx-get="/records/duplicate-check" hx-target="#duplicate-warning" hx-include="closest form" hx-trigger="change"><option value="">请选择</option>{% for site in sites %}<option value="{{ site.id }}" {{ 'selected' if (record and record.target_site_id == site.id) or (not record and selected_site_id == site.id) }}>{{ site.name }}</option>{% endfor %}</select></label>
+    <label>外链渠道<select id="channel" name="channel_id" required hx-get="/records/duplicate-check" hx-target="#duplicate-warning" hx-include="closest form" hx-trigger="change"><option value="">请选择</option>{% for channel in channels %}<option value="{{ channel.id }}" {{ 'selected' if (record and record.channel_id == channel.id) or (not record and selected_channel_id == channel.id) }}>{{ channel.name }}</option>{% endfor %}</select></label>
+  </div>
+  <div id="duplicate-warning" {% if record %}hx-get="/records/duplicate-check?target_site_id={{ record.target_site_id }}&channel_id={{ record.channel_id }}&exclude_id={{ record.id }}" hx-trigger="load"{% endif %}></div>
+  <label>发布后的实际 URL<input type="url" name="actual_url" value="{{ record.actual_url if record else '' }}" required></label>
+  <div class="form-grid"><label>锚文本<input name="anchor_text" value="{{ record.anchor_text if record else '' }}" required></label><label>发布日期<input type="date" name="published_at" value="{{ record.published_at if record else today }}" required></label></div>
+  <div class="form-grid"><label>发布方式<select name="method"><option value="manual" {{ 'selected' if not record or record.method == PublishMethod.manual }}>manual · 人工</option><option value="auto" {{ 'selected' if record and record.method == PublishMethod.auto }}>auto · 自动引擎</option></select></label><label>状态<select name="status">{% for value in RecordStatus %}<option value="{{ value.value }}" {{ 'selected' if (record and record.status == value) or (not record and value == RecordStatus.live) }}>{{ record_status_labels[value] }}</option>{% endfor %}</select></label></div>
+  <div class="actions"><a class="button" href="/records">取消</a><button class="primary" type="submit">保存</button></div>
+</form>
+{% endblock %}

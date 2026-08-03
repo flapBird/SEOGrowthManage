@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}总览{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">SEO 增长工作台</p><h1>SEO 运营总览</h1><p class="muted">集中管理关键词机会、目标网站、外链渠道和自动发布任务。</p></div>
+  <div class="actions"><a class="button" href="/records/new">登记外链</a><a class="button primary" href="/tasks/new">新建自动任务</a></div>
+</div>
+<section class="stats">
+  <a href="/sites"><strong>{{ sites|length }}</strong><span>目标网站</span></a>
+  <a href="/channels"><strong>{{ channels|length }}</strong><span>全部渠道</span></a>
+  <a href="/channels?status=active"><strong>{{ channels|selectattr('status', 'equalto', ChannelStatus.active)|list|length }}</strong><span>正常渠道</span></a>
+  <a href="/tasks"><strong>{{ pending_tasks|length }}</strong><span>待处理任务（近期）</span></a>
+</section>
+<div class="grid-two">
+  <section class="panel">
+    <div class="panel-head"><h2>最近发布</h2><a href="/records">查看全部</a></div>
+    {% if recent_records %}
+    <div class="compact-list">
+      {% for record in recent_records %}
+      <a href="/records?target_site_id={{ record.target_site_id }}">
+        <div><strong>{{ record.target_site.name }}</strong><span>→ {{ record.channel.name }}</span></div>
+        <div class="right"><span class="badge {{ record.method.value }}">{{ record.method.value }}</span><time>{{ record.published_at }}</time></div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}<div class="empty">还没有发布记录。</div>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>任务队列</h2><a href="/tasks">查看全部</a></div>
+    {% if pending_tasks %}
+    <div class="compact-list">
+      {% for task in pending_tasks %}
+      <a href="/tasks/{{ task.id }}">
+        <div><strong>{{ task.target_site.name }}</strong><span>→ {{ task.channel.name }}</span></div>
+        <span class="badge status-{{ task.status.value }}">{{ task_status_labels[task.status] }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}<div class="empty">当前没有待处理任务。</div>{% endif %}
+  </section>
+</div>
+{% endblock %}

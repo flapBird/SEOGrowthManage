@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}关键词发现{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">SEO 机会雷达</p><h1>关键词候选</h1><p class="muted">自动聚合合规来源和搜索信号，只保留值得人工关注的候选。</p></div><div class="actions"><a class="button" href="/keyword-sources">来源与日志</a><a class="button primary" href="/serpapi-pools">SerpAPI 额度池</a></div></div>
+<form class="filters" method="get"><input name="q" value="{{ q }}" placeholder="搜索关键词"><select name="status"><option value="">全部状态</option>{% for value in KeywordCandidateStatus %}<option value="{{ value.value }}" {{ 'selected' if selected_status == value.value }}>{{ keyword_status_labels[value] }}</option>{% endfor %}</select><button>筛选</button><a href="/keywords">清除</a></form>
+<div class="grid-two keyword-top-grid">
+  <section class="panel form-card"><h2>人工导入候选</h2><p class="muted">每行一个游戏名，适合导入平台榜单、社群发现或已获授权的数据。</p><form method="post" action="/keywords/manual-import" class="stack"><label>目标语言<input name="language" value="en" maxlength="20"></label><label>关键词列表<textarea name="keywords" rows="6" required></textarea></label><button class="primary">导入并去重</button></form></section>
+  <section class="panel score-help"><h2>自动决策规则</h2><dl><dt>HOT</dt><dd>总分 ≥ 70，且至少三类独立信号成立</dd><dt>HOLD</dt><dd>总分 35–69，按 24h / 72h / 7d 自动复查</dd><dt>IGNORE</dt><dd>总分低于 35，冷却后仍可重新激活</dd></dl></section>
+</div>
+<section class="panel table-wrap keyword-table"><table><thead><tr><th>候选关键词</th><th>状态</th><th>总分</th><th>分项</th><th>来源</th><th>下一步</th></tr></thead><tbody>
+{% for candidate in candidates %}<tr><td><a class="name-link" href="/keywords/{{ candidate.id }}">{{ candidate.keyword }}</a><small>首次发现：{{ candidate.first_seen_at.strftime('%Y-%m-%d %H:%M') }}</small></td><td><span class="badge keyword-{{ candidate.status.value }}">{{ keyword_status_labels[candidate.status] }}</span></td><td><strong class="score-number">{{ '%.1f'|format(candidate.total_score) }}</strong><div class="score-track"><i style="width:{{ candidate.total_score }}%"></i></div></td><td><small>热度 {{ candidate.heat_score }} · 新鲜 {{ candidate.freshness_score }}</small><small>意图 {{ candidate.intent_score }} · 机会 {{ candidate.competition_score }}</small></td><td>{{ candidate.source_count }}</td><td>{% if candidate.next_review_at %}<small>{{ candidate.next_review_at.strftime('%m-%d %H:%M') }} 复查</small>{% elif candidate.ignored_until %}<small>冷却至 {{ candidate.ignored_until.strftime('%m-%d') }}</small>{% else %}—{% endif %}</td></tr>{% else %}<tr><td colspan="6" class="empty">还没有关键词候选。添加来源并运行，或先人工导入。</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}
+

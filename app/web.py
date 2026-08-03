@@ -1,0 +1,546 @@
+from __future__ import annotations
+
+import json
+from datetime import date
+from typing import Annotated
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
+from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
+
+from .config import BASE_DIR, get_settings
+from .database import get_db
+from .models import (
+    AutomationTask,
+    BacklinkRecord,
+    Channel,
+    ChannelCredential,
+    ChannelStatus,
+    ChannelType,
+    PublishMethod,
+    RecordStatus,
+    KeywordCandidateStatus,
+    KeywordFetchStatus,
+    KeywordSourceType,
+    TargetSite,
+    TaskStatus,
+)
+from .security import (
+    SESSION_COOKIE,
+    CredentialCipher,
+    authenticate,
+    create_session,
+    delete_session,
+    is_authenticated,
+    require_auth,
+)
+
+
+templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
+templates.env.globals.update(
+    channel_type_labels={
+        ChannelType.forum: "论坛",
+        ChannelType.directory: "目录",
+        ChannelType.blog_comment: "博客评论",
+        ChannelType.advertorial: "软文平台",
+    },
+    channel_status_labels={
+        ChannelStatus.active: "正常",
+        ChannelStatus.inactive: "失效",
+        ChannelStatus.banned: "已被封禁",
+    },
+    record_status_labels={
+        RecordStatus.pending: "待确认",
+        RecordStatus.live: "正常",
+        RecordStatus.removed: "已失效",
+    },
+    task_status_labels={
+        TaskStatus.pending: "等待中",
+        TaskStatus.running: "执行中",
+        TaskStatus.success: "成功",
+        TaskStatus.failed: "等待重试",
+        TaskStatus.needs_attention: "需人工介入",
+    },
+    ChannelType=ChannelType,
+    ChannelStatus=ChannelStatus,
+    PublishMethod=PublishMethod,
+    RecordStatus=RecordStatus,
+    TaskStatus=TaskStatus,
+    KeywordCandidateStatus=KeywordCandidateStatus,
+    KeywordFetchStatus=KeywordFetchStatus,
+    KeywordSourceType=KeywordSourceType,
+    keyword_status_labels={
+        KeywordCandidateStatus.discovered: "待分析",
+        KeywordCandidateStatus.hot: "HOT",
+        KeywordCandidateStatus.hold: "HOLD",
+        KeywordCandidateStatus.ignore: "IGNORE",
+    },
+    keyword_source_type_labels={
+        KeywordSourceType.sitemap: "Sitemap",
+        KeywordSourceType.trends_rss: "趋势 RSS",
+        KeywordSourceType.manual: "人工导入",
+    },
+    keyword_fetch_status_labels={
+        KeywordFetchStatus.running: "运行中",
+        KeywordFetchStatus.success: "成功",
+        KeywordFetchStatus.failed: "失败",
+    },
+)
+
+public_router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_auth)])
+Db = Annotated[Session, Depends(get_db)]
+
+
+def render(request: Request, name: str, **context) -> HTMLResponse:
+    return templates.TemplateResponse(request=request, name=name, context=context)
+
+
+def redirect(path: str, message: str | None = None) -> RedirectResponse:
+    if message:
+        separator = "&" if "?" in path else "?"
+        path = f"{path}{separator}message={quote(message)}"
+    return RedirectResponse(path, status_code=303)
+
+
+def get_or_404(db: Session, model, object_id: int):
+    value = db.get(model, object_id)
+    if value is None:
+        raise HTTPException(404, "记录不存在")
+    return value
+
+
+@public_router.get("/login", response_class=HTMLResponse)
+def login_page(request: Request, db: Db, next: str = "/"):
+    if is_authenticated(request, db):
+        return RedirectResponse("/", status_code=303)
+    return render(request, "login.html", next=next, error=None)
+
+
+@public_router.post("/login", response_class=HTMLResponse)
+def login(request: Request, db: Db, username: Annotated[str, Form()], password: Annotated[str, Form()], next: Annotated[str, Form()] = "/"):
+    if not authenticate(username, password):
+        return render(request, "login.html", next=next, error="用户名或密码错误", status_code=401)
+    safe_next = next if next.startswith("/") and not next.startswith("//") else "/"
+    response = RedirectResponse(safe_next, status_code=303)
+    response.set_cookie(
+        SESSION_COOKIE,
+        create_session(db),
+        max_age=get_settings().session_days * 24 * 60 * 60,
+        httponly=True,
+        secure=get_settings().cookie_secure,
+        samesite="lax",
+    )
+    return response
+
+
+@router.post("/logout")
+def logout(request: Request, db: Db):
+    delete_session(db, request.cookies.get(SESSION_COOKIE))
+    response = RedirectResponse("/login", status_code=303)
+    response.delete_cookie(SESSION_COOKIE, httponly=True, secure=get_settings().cookie_secure, samesite="lax")
+    return response
+
+
+@router.get("/", response_class=HTMLResponse)
+def dashboard(request: Request, db: Db):
+    sites = db.scalars(select(TargetSite).order_by(TargetSite.name)).all()
+    channels = db.scalars(select(Channel).order_by(Channel.name)).all()
+    recent_records = db.scalars(
+        select(BacklinkRecord)
+        .options(joinedload(BacklinkRecord.target_site), joinedload(BacklinkRecord.channel))
+        .order_by(BacklinkRecord.published_at.desc(), BacklinkRecord.id.desc())
+        .limit(10)
+    ).all()
+    pending_tasks = db.scalars(
+        select(AutomationTask)
+        .options(joinedload(AutomationTask.target_site), joinedload(AutomationTask.channel))
+        .where(AutomationTask.status.in_([TaskStatus.pending, TaskStatus.failed, TaskStatus.needs_attention]))
+        .order_by(AutomationTask.created_at.desc())
+        .limit(8)
+    ).all()
+    return render(request, "dashboard.html", sites=sites, channels=channels, recent_records=recent_records, pending_tasks=pending_tasks)
+
+
+@router.get("/sites", response_class=HTMLResponse)
+def sites_list(request: Request, db: Db, q: str = ""):
+    stmt = select(TargetSite).order_by(TargetSite.name)
+    if q:
+        stmt = stmt.where(TargetSite.name.contains(q) | TargetSite.url.contains(q))
+    return render(request, "sites/list.html", sites=db.scalars(stmt).all(), q=q)
+
+
+@router.get("/sites/new", response_class=HTMLResponse)
+def site_new(request: Request):
+    return render(request, "sites/form.html", site=None)
+
+
+@router.post("/sites")
+def site_create(db: Db, name: Annotated[str, Form()], url: Annotated[str, Form()], notes: Annotated[str, Form()] = ""):
+    site = TargetSite(name=name.strip(), url=url.strip(), notes=notes.strip() or None)
+    db.add(site)
+    db.commit()
+    return redirect("/sites", "目标网站已创建")
+
+
+@router.get("/sites/{site_id}/edit", response_class=HTMLResponse)
+def site_edit(request: Request, site_id: int, db: Db):
+    return render(request, "sites/form.html", site=get_or_404(db, TargetSite, site_id))
+
+
+@router.post("/sites/{site_id}")
+def site_update(site_id: int, db: Db, name: Annotated[str, Form()], url: Annotated[str, Form()], notes: Annotated[str, Form()] = ""):
+    site = get_or_404(db, TargetSite, site_id)
+    site.name, site.url, site.notes = name.strip(), url.strip(), notes.strip() or None
+    db.commit()
+    return redirect("/sites", "目标网站已更新")
+
+
+@router.post("/sites/{site_id}/delete")
+def site_delete(site_id: int, db: Db):
+    db.delete(get_or_404(db, TargetSite, site_id))
+    db.commit()
+    return redirect("/sites", "目标网站及其关联数据已删除")
+
+
+@router.get("/channels", response_class=HTMLResponse)
+def channels_list(request: Request, db: Db, q: str = "", channel_type: str = "", status: str = ""):
+    stmt = select(Channel).options(joinedload(Channel.credential)).order_by(Channel.name)
+    if q:
+        stmt = stmt.where(Channel.name.contains(q) | Channel.url.contains(q))
+    if channel_type:
+        stmt = stmt.where(Channel.channel_type == ChannelType(channel_type))
+    if status:
+        stmt = stmt.where(Channel.status == ChannelStatus(status))
+    return render(
+        request,
+        "channels/list.html",
+        channels=db.scalars(stmt).unique().all(),
+        q=q,
+        selected_type=channel_type,
+        selected_status=status,
+    )
+
+
+@router.get("/channels/new", response_class=HTMLResponse)
+def channel_new(request: Request):
+    return render(request, "channels/form.html", channel=None)
+
+
+def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str, status: str, supports_automation: str | None, adapter_key: str, adapter_config: str, notes: str) -> None:
+    if adapter_config.strip():
+        try:
+            json.loads(adapter_config)
+        except json.JSONDecodeError as exc:
+            raise HTTPException(422, f"适配器配置不是合法 JSON: {exc.msg}") from exc
+    channel.name = name.strip()
+    channel.url = url.strip()
+    channel.channel_type = ChannelType(channel_type)
+    channel.status = ChannelStatus(status)
+    channel.supports_automation = supports_automation == "on"
+    channel.adapter_key = adapter_key.strip() or None
+    channel.adapter_config = adapter_config.strip() or None
+    channel.notes = notes.strip() or None
+
+
+@router.post("/channels")
+def channel_create(
+    db: Db,
+    name: Annotated[str, Form()],
+    url: Annotated[str, Form()],
+    channel_type: Annotated[str, Form()],
+    status: Annotated[str, Form()],
+    supports_automation: Annotated[str | None, Form()] = None,
+    adapter_key: Annotated[str, Form()] = "",
+    adapter_config: Annotated[str, Form()] = "",
+    notes: Annotated[str, Form()] = "",
+):
+    channel = Channel(name="", url="", channel_type=ChannelType.forum)
+    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes)
+    db.add(channel)
+    db.commit()
+    return redirect("/channels", "外链渠道已创建")
+
+
+@router.get("/channels/{channel_id}", response_class=HTMLResponse)
+def channel_detail(request: Request, channel_id: int, db: Db):
+    channel = db.scalar(
+        select(Channel).options(joinedload(Channel.credential)).where(Channel.id == channel_id)
+    )
+    if channel is None:
+        raise HTTPException(404, "渠道不存在")
+    return render(request, "channels/detail.html", channel=channel)
+
+
+@router.get("/channels/{channel_id}/edit", response_class=HTMLResponse)
+def channel_edit(request: Request, channel_id: int, db: Db):
+    return render(request, "channels/form.html", channel=get_or_404(db, Channel, channel_id))
+
+
+@router.post("/channels/{channel_id}")
+def channel_update(
+    channel_id: int,
+    db: Db,
+    name: Annotated[str, Form()],
+    url: Annotated[str, Form()],
+    channel_type: Annotated[str, Form()],
+    status: Annotated[str, Form()],
+    supports_automation: Annotated[str | None, Form()] = None,
+    adapter_key: Annotated[str, Form()] = "",
+    adapter_config: Annotated[str, Form()] = "",
+    notes: Annotated[str, Form()] = "",
+):
+    channel = get_or_404(db, Channel, channel_id)
+    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes)
+    db.commit()
+    return redirect(f"/channels/{channel_id}", "渠道已更新")
+
+
+@router.post("/channels/{channel_id}/delete")
+def channel_delete(channel_id: int, db: Db):
+    db.delete(get_or_404(db, Channel, channel_id))
+    db.commit()
+    return redirect("/channels", "渠道及其关联数据已删除")
+
+
+@router.post("/channels/{channel_id}/credential")
+def credential_save(
+    channel_id: int,
+    db: Db,
+    username: Annotated[str, Form()] = "",
+    password: Annotated[str, Form()] = "",
+    api_key: Annotated[str, Form()] = "",
+):
+    channel = get_or_404(db, Channel, channel_id)
+    credential = channel.credential or ChannelCredential(channel=channel)
+    cipher = CredentialCipher()
+    credential.username = username.strip() or None
+    if password:
+        credential.encrypted_password = cipher.encrypt(password)
+    if api_key:
+        credential.encrypted_extra_fields = cipher.encrypt_json({"api_key": api_key})
+    db.add(credential)
+    db.commit()
+    return redirect(f"/channels/{channel_id}", "凭据已加密保存")
+
+
+@router.post("/channels/{channel_id}/credential/delete")
+def credential_delete(channel_id: int, db: Db):
+    channel = get_or_404(db, Channel, channel_id)
+    if channel.credential:
+        db.delete(channel.credential)
+        db.commit()
+    return redirect(f"/channels/{channel_id}", "凭据已删除")
+
+
+@router.get("/records", response_class=HTMLResponse)
+def records_list(
+    request: Request,
+    db: Db,
+    target_site_id: int | None = None,
+    channel_id: int | None = None,
+    status: str = "",
+    method: str = "",
+):
+    stmt = select(BacklinkRecord).options(joinedload(BacklinkRecord.target_site), joinedload(BacklinkRecord.channel))
+    if target_site_id:
+        stmt = stmt.where(BacklinkRecord.target_site_id == target_site_id)
+    if channel_id:
+        stmt = stmt.where(BacklinkRecord.channel_id == channel_id)
+    if status:
+        stmt = stmt.where(BacklinkRecord.status == RecordStatus(status))
+    if method:
+        stmt = stmt.where(BacklinkRecord.method == PublishMethod(method))
+    stmt = stmt.order_by(BacklinkRecord.published_at.desc(), BacklinkRecord.id.desc())
+    return render(
+        request,
+        "records/list.html",
+        records=db.scalars(stmt).all(),
+        sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
+        channels=db.scalars(select(Channel).order_by(Channel.name)).all(),
+        selected_site_id=target_site_id,
+        selected_channel_id=channel_id,
+        selected_status=status,
+        selected_method=method,
+    )
+
+
+@router.get("/records/new", response_class=HTMLResponse)
+def record_new(request: Request, db: Db, target_site_id: int | None = None, channel_id: int | None = None):
+    return render(
+        request,
+        "records/form.html",
+        record=None,
+        sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
+        channels=db.scalars(select(Channel).order_by(Channel.name)).all(),
+        selected_site_id=target_site_id,
+        selected_channel_id=channel_id,
+        today=date.today().isoformat(),
+    )
+
+
+@router.get("/records/duplicate-check", response_class=HTMLResponse)
+def duplicate_check(request: Request, db: Db, target_site_id: int | None = None, channel_id: int | None = None, exclude_id: int | None = None):
+    if not target_site_id or not channel_id:
+        return HTMLResponse("")
+    stmt = select(BacklinkRecord).where(
+        BacklinkRecord.target_site_id == target_site_id,
+        BacklinkRecord.channel_id == channel_id,
+        BacklinkRecord.status == RecordStatus.live,
+    ).order_by(BacklinkRecord.published_at.desc())
+    if exclude_id:
+        stmt = stmt.where(BacklinkRecord.id != exclude_id)
+    existing = db.scalar(stmt)
+    return render(request, "records/_duplicate_warning.html", existing=existing)
+
+
+@router.post("/records")
+def record_create(
+    db: Db,
+    target_site_id: Annotated[int, Form()],
+    channel_id: Annotated[int, Form()],
+    actual_url: Annotated[str, Form()],
+    anchor_text: Annotated[str, Form()],
+    published_at: Annotated[date, Form()],
+    method: Annotated[str, Form()],
+    status: Annotated[str, Form()],
+):
+    get_or_404(db, TargetSite, target_site_id)
+    get_or_404(db, Channel, channel_id)
+    db.add(BacklinkRecord(
+        target_site_id=target_site_id,
+        channel_id=channel_id,
+        actual_url=actual_url.strip(),
+        anchor_text=anchor_text.strip(),
+        published_at=published_at,
+        method=PublishMethod(method),
+        status=RecordStatus(status),
+    ))
+    db.commit()
+    return redirect("/records", "发布记录已登记")
+
+
+@router.get("/records/{record_id}/edit", response_class=HTMLResponse)
+def record_edit(request: Request, record_id: int, db: Db):
+    return render(
+        request,
+        "records/form.html",
+        record=get_or_404(db, BacklinkRecord, record_id),
+        sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
+        channels=db.scalars(select(Channel).order_by(Channel.name)).all(),
+        selected_site_id=None,
+        selected_channel_id=None,
+        today=date.today().isoformat(),
+    )
+
+
+@router.post("/records/{record_id}")
+def record_update(
+    record_id: int,
+    db: Db,
+    target_site_id: Annotated[int, Form()],
+    channel_id: Annotated[int, Form()],
+    actual_url: Annotated[str, Form()],
+    anchor_text: Annotated[str, Form()],
+    published_at: Annotated[date, Form()],
+    method: Annotated[str, Form()],
+    status: Annotated[str, Form()],
+):
+    record = get_or_404(db, BacklinkRecord, record_id)
+    record.target_site_id, record.channel_id = target_site_id, channel_id
+    record.actual_url, record.anchor_text, record.published_at = actual_url.strip(), anchor_text.strip(), published_at
+    record.method, record.status = PublishMethod(method), RecordStatus(status)
+    db.commit()
+    return redirect("/records", "发布记录已更新")
+
+
+@router.post("/records/{record_id}/delete")
+def record_delete(record_id: int, db: Db):
+    db.delete(get_or_404(db, BacklinkRecord, record_id))
+    db.commit()
+    return redirect("/records", "发布记录已删除")
+
+
+@router.get("/tasks", response_class=HTMLResponse)
+def tasks_list(request: Request, db: Db, status: str = ""):
+    stmt = select(AutomationTask).options(joinedload(AutomationTask.target_site), joinedload(AutomationTask.channel))
+    if status:
+        stmt = stmt.where(AutomationTask.status == TaskStatus(status))
+    stmt = stmt.order_by(AutomationTask.created_at.desc())
+    return render(request, "tasks/list.html", tasks=db.scalars(stmt).all(), selected_status=status)
+
+
+@router.get("/tasks/new", response_class=HTMLResponse)
+def task_new(request: Request, db: Db):
+    eligible_channels = db.scalars(
+        select(Channel).where(Channel.status == ChannelStatus.active, Channel.supports_automation.is_(True)).order_by(Channel.name)
+    ).all()
+    return render(
+        request,
+        "tasks/form.html",
+        sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
+        channels=eligible_channels,
+        default_retries=get_settings().automation_max_retries,
+    )
+
+
+@router.post("/tasks")
+def task_create(
+    db: Db,
+    target_site_id: Annotated[int, Form()],
+    channel_id: Annotated[int, Form()],
+    anchor_text: Annotated[str, Form()],
+    max_retries: Annotated[int, Form()],
+):
+    get_or_404(db, TargetSite, target_site_id)
+    channel = get_or_404(db, Channel, channel_id)
+    if channel.status != ChannelStatus.active or not channel.supports_automation:
+        raise HTTPException(422, "只能为状态正常且支持自动化的渠道创建任务")
+    db.add(AutomationTask(
+        target_site_id=target_site_id,
+        channel_id=channel_id,
+        anchor_text=anchor_text.strip(),
+        max_retries=max(0, min(max_retries, 20)),
+    ))
+    db.commit()
+    return redirect("/tasks", "自动发布任务已创建，将由调度器执行")
+
+
+@router.get("/tasks/{task_id}", response_class=HTMLResponse)
+def task_detail(request: Request, task_id: int, db: Db):
+    task = db.execute(
+        select(AutomationTask)
+        .options(joinedload(AutomationTask.target_site), joinedload(AutomationTask.channel), joinedload(AutomationTask.logs))
+        .where(AutomationTask.id == task_id)
+    ).unique().scalar_one_or_none()
+    if task is None:
+        raise HTTPException(404, "任务不存在")
+    return render(request, "tasks/detail.html", task=task)
+
+
+@router.post("/tasks/{task_id}/retry")
+def task_retry(task_id: int, db: Db):
+    task = get_or_404(db, AutomationTask, task_id)
+    if task.status not in (TaskStatus.failed, TaskStatus.needs_attention):
+        raise HTTPException(422, "只有失败或需人工介入的任务可以重试")
+    task.status = TaskStatus.pending
+    task.retry_count = 0
+    task.last_error = None
+    db.commit()
+    return redirect(f"/tasks/{task_id}", "任务已重置，等待调度器重试")
+
+
+@router.post("/tasks/{task_id}/run")
+async def task_run_now(task_id: int, db: Db):
+    from .automation.engine import execute_task
+
+    task = get_or_404(db, AutomationTask, task_id)
+    if task.status in (TaskStatus.running, TaskStatus.success):
+        raise HTTPException(422, "当前任务不可执行")
+    task.status = TaskStatus.pending
+    db.commit()
+    await execute_task(task.id)
+    return redirect(f"/tasks/{task_id}", "任务已执行，请查看最新状态与日志")

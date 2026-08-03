@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}任务 #{{ task.id }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">自动发布任务 #{{ task.id }}</p><h1>{{ task.target_site.name }} → {{ task.channel.name }}</h1></div><div class="actions">{% if task.status in (TaskStatus.failed, TaskStatus.needs_attention) %}<form method="post" action="/tasks/{{ task.id }}/retry"><button>重置重试</button></form>{% endif %}{% if task.status not in (TaskStatus.running, TaskStatus.success) %}<form method="post" action="/tasks/{{ task.id }}/run"><button class="primary">立即执行</button></form>{% endif %}</div></div>
+<section class="panel detail-list"><dl><dt>状态</dt><dd><span class="badge status-{{ task.status.value }}">{{ task_status_labels[task.status] }}</span></dd><dt>目标 URL</dt><dd>{{ task.target_site.url }}</dd><dt>锚文本</dt><dd>{{ task.anchor_text }}</dd><dt>重试计数</dt><dd>{{ task.retry_count }} / {{ task.max_retries }}</dd><dt>实际发布 URL</dt><dd>{% if task.actual_url %}<a href="{{ task.actual_url }}" target="_blank">{{ task.actual_url }}</a>{% else %}—{% endif %}</dd><dt>最后错误</dt><dd class="error-text">{{ task.last_error or '—' }}</dd></dl></section>
+<section class="panel"><div class="panel-head"><h2>执行日志</h2></div><div class="timeline">{% for log in task.logs %}<article class="log {{ log.level }}"><time>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</time><p>{{ log.message }}</p></article>{% else %}<div class="empty">暂无执行日志。</div>{% endfor %}</div></section>
+{% endblock %}
+

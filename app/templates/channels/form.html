@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑' if channel else '新增' }}渠道{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">外链渠道</p><h1>{{ '编辑渠道' if channel else '新增渠道' }}</h1></div></div>
+<form class="panel form-card stack" method="post" action="{{ '/channels/' ~ channel.id if channel else '/channels' }}">
+  <div class="form-grid"><label>渠道名称<input name="name" value="{{ channel.name if channel else '' }}" required></label><label>渠道网址<input type="url" name="url" value="{{ channel.url if channel else '' }}" required></label></div>
+  <div class="form-grid"><label>渠道类型<select name="channel_type">{% for value in ChannelType %}<option value="{{ value.value }}" {{ 'selected' if channel and channel.channel_type == value }}>{{ channel_type_labels[value] }}</option>{% endfor %}</select></label>
+  <label>状态<select name="status">{% for value in ChannelStatus %}<option value="{{ value.value }}" {{ 'selected' if channel and channel.status == value }}>{{ channel_status_labels[value] }}</option>{% endfor %}</select></label></div>
+  <label class="check"><input type="checkbox" name="supports_automation" {{ 'checked' if channel and channel.supports_automation }}> 支持自动化提交</label>
+  <details {{ 'open' if channel and channel.supports_automation }}><summary>自动化适配器配置</summary>
+    <div class="stack inset"><label>适配器<select name="adapter_key"><option value="">未配置</option><option value="playwright_form" {{ 'selected' if channel and channel.adapter_key == 'playwright_form' }}>Playwright 通用表单示例</option></select></label>
+    <label>适配器 JSON 配置<textarea class="code" name="adapter_config" rows="9" placeholder='{"form_url":"https://...","target_url_selector":"#url","anchor_text_selector":"#anchor","submit_selector":"button[type=submit]"}'>{{ channel.adapter_config or '' if channel else '' }}</textarea></label><small>字段说明和完整示例见 README。只有标记支持自动化、状态正常且配置了适配器的渠道会执行。</small></div>
+  </details>
+  <label>备注<textarea name="notes" rows="4">{{ channel.notes or '' if channel else '' }}</textarea></label>
+  <div class="actions"><a class="button" href="{{ '/channels/' ~ channel.id if channel else '/channels' }}">取消</a><button class="primary" type="submit">保存</button></div>
+</form>
+{% endblock %}
+

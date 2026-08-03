@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}外链渠道{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">基础数据</p><h1>外链渠道</h1></div><a class="button primary" href="/channels/new">新增渠道</a></div>
+<form class="filters" method="get">
+  <input name="q" value="{{ q }}" placeholder="搜索名称或网址">
+  <select name="channel_type"><option value="">全部类型</option>{% for value in ChannelType %}<option value="{{ value.value }}" {{ 'selected' if selected_type == value.value }}>{{ channel_type_labels[value] }}</option>{% endfor %}</select>
+  <select name="status"><option value="">全部状态</option>{% for value in ChannelStatus %}<option value="{{ value.value }}" {{ 'selected' if selected_status == value.value }}>{{ channel_status_labels[value] }}</option>{% endfor %}</select>
+  <button type="submit">筛选</button><a href="/channels">清除</a>
+</form>
+<section class="panel table-wrap"><table><thead><tr><th>渠道</th><th>类型</th><th>状态</th><th>自动化</th><th>凭据</th><th>操作</th></tr></thead><tbody>
+{% for channel in channels %}<tr>
+  <td><a class="name-link" href="/channels/{{ channel.id }}">{{ channel.name }}</a><small>{{ channel.url }}</small></td>
+  <td>{{ channel_type_labels[channel.channel_type] }}</td><td><span class="badge channel-{{ channel.status.value }}">{{ channel_status_labels[channel.status] }}</span></td>
+  <td>{{ '支持' if channel.supports_automation else '—' }}</td><td>{{ '已配置' if channel.credential else '未配置' }}</td>
+  <td class="row-actions"><a href="/records?channel_id={{ channel.id }}">渠道看板</a><a href="/channels/{{ channel.id }}/edit">编辑</a></td>
+</tr>{% else %}<tr><td colspan="6" class="empty">还没有外链渠道。</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}
+

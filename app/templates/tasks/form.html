@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}新建自动任务{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">自动发布引擎</p><h1>新建任务</h1><p class="muted">这里只显示状态正常且支持自动化提交的渠道。</p></div></div>
+<form class="panel form-card stack" method="post" action="/tasks">
+  <label>目标网站<select name="target_site_id" required><option value="">请选择</option>{% for site in sites %}<option value="{{ site.id }}">{{ site.name }} · {{ site.url }}</option>{% endfor %}</select></label>
+  <label>自动化渠道<select name="channel_id" required><option value="">请选择</option>{% for channel in channels %}<option value="{{ channel.id }}">{{ channel.name }} · {{ channel.adapter_key or '未配置适配器' }}</option>{% endfor %}</select></label>
+  {% if not channels %}<div class="alert warning">暂无可用渠道。请先把渠道状态设为“正常”、勾选“支持自动化提交”并配置适配器。</div>{% endif %}
+  <div class="form-grid"><label>锚文本<input name="anchor_text" required></label><label>失败重试次数<input type="number" name="max_retries" min="0" max="20" value="{{ default_retries }}" required></label></div>
+  <div class="actions"><a class="button" href="/tasks">取消</a><button class="primary" type="submit" {{ 'disabled' if not channels }}>加入任务队列</button></div>
+</form>
+{% endblock %}
+

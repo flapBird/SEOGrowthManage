@@ -1,0 +1,58 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Persistent runtime data and backups
+data/*
+!data/.gitkeep
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.bak
+*.backup
+backups/
+
+# Python virtual environments and bytecode
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Tests, coverage and type-checker caches
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.tox/
+.nox/
+
+# Packaging/build outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Playwright artifacts and application logs
+playwright-report/
+test-results/
+*.log
+logs/
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

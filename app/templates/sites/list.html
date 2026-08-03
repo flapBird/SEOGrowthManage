@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}目标网站{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">基础数据</p><h1>目标网站</h1></div><a class="button primary" href="/sites/new">新增网站</a></div>
+<form class="filters" method="get"><input name="q" value="{{ q }}" placeholder="搜索名称或网址"><button type="submit">查询</button>{% if q %}<a href="/sites">清除</a>{% endif %}</form>
+<section class="panel table-wrap">
+<table><thead><tr><th>名称</th><th>网址</th><th>备注</th><th>操作</th></tr></thead><tbody>
+{% for site in sites %}<tr>
+  <td><strong>{{ site.name }}</strong></td><td><a href="{{ site.url }}" target="_blank" rel="noopener">{{ site.url }}</a></td><td class="muted">{{ site.notes or '—' }}</td>
+  <td class="row-actions"><a href="/records?target_site_id={{ site.id }}">发布看板</a><a href="/sites/{{ site.id }}/edit">编辑</a><form method="post" action="/sites/{{ site.id }}/delete" onsubmit="return confirm('将同时删除关联记录和任务，确定吗？')"><button class="danger-link">删除</button></form></td>
+</tr>{% else %}<tr><td colspan="4" class="empty">还没有目标网站。</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}
+

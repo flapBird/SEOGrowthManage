@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ '编辑' if site else '新增' }}网站{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">目标网站</p><h1>{{ '编辑网站' if site else '新增网站' }}</h1></div></div>
+<form class="panel form-card stack" method="post" action="{{ '/sites/' ~ site.id if site else '/sites' }}">
+  <label>网站名称<input name="name" value="{{ site.name if site else '' }}" maxlength="120" required></label>
+  <label>网站网址<input type="url" name="url" value="{{ site.url if site else '' }}" placeholder="https://example.com" required></label>
+  <label>备注<textarea name="notes" rows="4">{{ site.notes or '' if site else '' }}</textarea></label>
+  <div class="actions"><a class="button" href="/sites">取消</a><button class="primary" type="submit">保存</button></div>
+</form>
+{% endblock %}
+

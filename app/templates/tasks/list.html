@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}自动发布任务{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">自动发布引擎</p><h1>任务队列</h1><p class="muted">调度器会批量处理等待中和可重试的失败任务。</p></div><a class="button primary" href="/tasks/new">新建任务</a></div>
+<form class="filters"><select name="status"><option value="">全部状态</option>{% for value in TaskStatus %}<option value="{{ value.value }}" {{ 'selected' if selected_status == value.value }}>{{ task_status_labels[value] }}</option>{% endfor %}</select><button>筛选</button><a href="/tasks">清除</a></form>
+<section class="panel table-wrap"><table><thead><tr><th>任务</th><th>渠道</th><th>状态</th><th>重试</th><th>创建时间</th><th></th></tr></thead><tbody>
+{% for task in tasks %}<tr><td><strong>{{ task.target_site.name }}</strong><small>{{ task.anchor_text }}</small></td><td>{{ task.channel.name }}</td><td><span class="badge status-{{ task.status.value }}">{{ task_status_labels[task.status] }}</span></td><td>{{ task.retry_count }} / {{ task.max_retries }}</td><td>{{ task.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td><a href="/tasks/{{ task.id }}">详情与日志</a></td></tr>{% else %}<tr><td colspan="6" class="empty">还没有自动发布任务。</td></tr>{% endfor %}</tbody></table></section>
+{% endblock %}
+

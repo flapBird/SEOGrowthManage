@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SEO 工作台{% endblock %} · SEO Growth Console</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/keyword.css') }}">
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">SEO Growth Console</a>
+    <nav>
+      <a href="/sites">目标网站</a>
+      <a href="/channels">外链渠道</a>
+      <a href="/records">发布记录</a>
+      <a href="/tasks">自动任务</a>
+      <a href="/keywords">关键词发现</a>
+    </nav>
+    <form method="post" action="/logout"><button class="link-button" type="submit">退出</button></form>
+  </header>
+  <main class="container">
+    {% if request.query_params.get('message') %}<div class="flash">{{ request.query_params.get('message') }}</div>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
