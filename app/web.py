@@ -13,10 +13,12 @@ from sqlalchemy.orm import Session, joinedload
 
 from .config import BASE_DIR, get_settings
 from .database import get_db
+from .channel_blacklist import available_channels, is_channel_blacklisted, matching_blacklist_entry, normalize_blacklist_domain
 from .models import (
     AutomationTask,
     BacklinkRecord,
     Channel,
+    ChannelBlacklist,
     ChannelCredential,
     ChannelStatus,
     ChannelType,
@@ -111,6 +113,21 @@ def get_or_404(db: Session, model, object_id: int):
     if value is None:
         raise HTTPException(404, "记录不存在")
     return value
+
+
+def optional_int(value: str | int | None, field_name: str) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(422, f"{field_name} 必须是有效整数") from exc
+
+
+def reject_blacklisted_channel(db: Session, channel: Channel) -> None:
+    blocked = matching_blacklist_entry(db, channel.url)
+    if blocked:
+        raise HTTPException(422, f"渠道域名 {blocked.domain} 已在外链黑名单中")
 
 
 @public_router.get("/login", response_class=HTMLResponse)
@@ -215,10 +232,14 @@ def channels_list(request: Request, db: Db, q: str = "", channel_type: str = "",
         stmt = stmt.where(Channel.channel_type == ChannelType(channel_type))
     if status:
         stmt = stmt.where(Channel.status == ChannelStatus(status))
+    channels = db.scalars(stmt).unique().all()
+    blacklisted_channel_ids = {channel.id for channel in channels if is_channel_blacklisted(db, channel)}
     return render(
         request,
         "channels/list.html",
-        channels=db.scalars(stmt).unique().all(),
+        channels=channels,
+        blacklist=db.scalars(select(ChannelBlacklist).order_by(ChannelBlacklist.domain)).all(),
+        blacklisted_channel_ids=blacklisted_channel_ids,
         q=q,
         selected_type=channel_type,
         selected_status=status,
@@ -260,6 +281,7 @@ def channel_create(
 ):
     channel = Channel(name="", url="", channel_type=ChannelType.forum)
     apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes)
+    reject_blacklisted_channel(db, channel)
     db.add(channel)
     db.commit()
     return redirect("/channels", "外链渠道已创建")
@@ -295,6 +317,7 @@ def channel_update(
 ):
     channel = get_or_404(db, Channel, channel_id)
     apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes)
+    reject_blacklisted_channel(db, channel)
     db.commit()
     return redirect(f"/channels/{channel_id}", "渠道已更新")
 
@@ -336,20 +359,83 @@ def credential_delete(channel_id: int, db: Db):
     return redirect(f"/channels/{channel_id}", "凭据已删除")
 
 
+@router.post("/channel-blacklist/import")
+def channel_blacklist_import(
+    db: Db,
+    entries: Annotated[str, Form()],
+    notes: Annotated[str, Form()] = "",
+):
+    added = 0
+    skipped = 0
+    errors: list[str] = []
+    existing = set(db.scalars(select(ChannelBlacklist.domain)).all())
+    for line_number, raw_value in enumerate(entries.splitlines(), start=1):
+        if not raw_value.strip():
+            continue
+        try:
+            domain = normalize_blacklist_domain(raw_value)
+        except ValueError as exc:
+            errors.append(f"第 {line_number} 行：{exc}")
+            continue
+        if domain in existing:
+            skipped += 1
+            continue
+        db.add(ChannelBlacklist(domain=domain, notes=notes.strip() or None))
+        existing.add(domain)
+        added += 1
+    db.commit()
+    message = f"黑名单新增 {added} 条，跳过重复 {skipped} 条"
+    if errors:
+        message += f"，无效 {len(errors)} 条：{'；'.join(errors[:3])}"
+    return redirect("/channels", message)
+
+
+@router.post("/channel-blacklist/{entry_id}/update")
+def channel_blacklist_update(
+    entry_id: int,
+    db: Db,
+    domain: Annotated[str, Form()],
+    notes: Annotated[str, Form()] = "",
+):
+    entry = get_or_404(db, ChannelBlacklist, entry_id)
+    try:
+        entry.domain = normalize_blacklist_domain(domain)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    duplicate = db.scalar(select(ChannelBlacklist).where(
+        ChannelBlacklist.domain == entry.domain,
+        ChannelBlacklist.id != entry.id,
+    ))
+    if duplicate:
+        raise HTTPException(422, "该域名已存在于黑名单")
+    entry.notes = notes.strip() or None
+    db.commit()
+    return redirect("/channels", "黑名单已更新")
+
+
+@router.post("/channel-blacklist/{entry_id}/delete")
+def channel_blacklist_delete(entry_id: int, db: Db):
+    db.delete(get_or_404(db, ChannelBlacklist, entry_id))
+    db.commit()
+    return redirect("/channels", "黑名单条目已删除")
+
+
 @router.get("/records", response_class=HTMLResponse)
 def records_list(
     request: Request,
     db: Db,
-    target_site_id: int | None = None,
-    channel_id: int | None = None,
+    target_site_id: str = "",
+    channel_id: str = "",
     status: str = "",
     method: str = "",
 ):
+    selected_site_id = optional_int(target_site_id, "目标网站")
+    selected_channel_id = optional_int(channel_id, "外链渠道")
     stmt = select(BacklinkRecord).options(joinedload(BacklinkRecord.target_site), joinedload(BacklinkRecord.channel))
-    if target_site_id:
-        stmt = stmt.where(BacklinkRecord.target_site_id == target_site_id)
-    if channel_id:
-        stmt = stmt.where(BacklinkRecord.channel_id == channel_id)
+    if selected_site_id:
+        stmt = stmt.where(BacklinkRecord.target_site_id == selected_site_id)
+    if selected_channel_id:
+        stmt = stmt.where(BacklinkRecord.channel_id == selected_channel_id)
     if status:
         stmt = stmt.where(BacklinkRecord.status == RecordStatus(status))
     if method:
@@ -360,39 +446,42 @@ def records_list(
         "records/list.html",
         records=db.scalars(stmt).all(),
         sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
-        channels=db.scalars(select(Channel).order_by(Channel.name)).all(),
-        selected_site_id=target_site_id,
-        selected_channel_id=channel_id,
+        channels=available_channels(db),
+        selected_site_id=selected_site_id,
+        selected_channel_id=selected_channel_id,
         selected_status=status,
         selected_method=method,
     )
 
 
 @router.get("/records/new", response_class=HTMLResponse)
-def record_new(request: Request, db: Db, target_site_id: int | None = None, channel_id: int | None = None):
+def record_new(request: Request, db: Db, target_site_id: str = "", channel_id: str = ""):
     return render(
         request,
         "records/form.html",
         record=None,
         sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
-        channels=db.scalars(select(Channel).order_by(Channel.name)).all(),
-        selected_site_id=target_site_id,
-        selected_channel_id=channel_id,
+        channels=available_channels(db),
+        selected_site_id=optional_int(target_site_id, "目标网站"),
+        selected_channel_id=optional_int(channel_id, "外链渠道"),
         today=date.today().isoformat(),
     )
 
 
 @router.get("/records/duplicate-check", response_class=HTMLResponse)
-def duplicate_check(request: Request, db: Db, target_site_id: int | None = None, channel_id: int | None = None, exclude_id: int | None = None):
-    if not target_site_id or not channel_id:
+def duplicate_check(request: Request, db: Db, target_site_id: str = "", channel_id: str = "", exclude_id: str = ""):
+    target_site = optional_int(target_site_id, "目标网站")
+    channel = optional_int(channel_id, "外链渠道")
+    excluded = optional_int(exclude_id, "排除记录")
+    if not target_site or not channel:
         return HTMLResponse("")
     stmt = select(BacklinkRecord).where(
-        BacklinkRecord.target_site_id == target_site_id,
-        BacklinkRecord.channel_id == channel_id,
+        BacklinkRecord.target_site_id == target_site,
+        BacklinkRecord.channel_id == channel,
         BacklinkRecord.status == RecordStatus.live,
     ).order_by(BacklinkRecord.published_at.desc())
-    if exclude_id:
-        stmt = stmt.where(BacklinkRecord.id != exclude_id)
+    if excluded:
+        stmt = stmt.where(BacklinkRecord.id != excluded)
     existing = db.scalar(stmt)
     return render(request, "records/_duplicate_warning.html", existing=existing)
 
@@ -409,7 +498,8 @@ def record_create(
     status: Annotated[str, Form()],
 ):
     get_or_404(db, TargetSite, target_site_id)
-    get_or_404(db, Channel, channel_id)
+    channel = get_or_404(db, Channel, channel_id)
+    reject_blacklisted_channel(db, channel)
     db.add(BacklinkRecord(
         target_site_id=target_site_id,
         channel_id=channel_id,
@@ -430,7 +520,7 @@ def record_edit(request: Request, record_id: int, db: Db):
         "records/form.html",
         record=get_or_404(db, BacklinkRecord, record_id),
         sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
-        channels=db.scalars(select(Channel).order_by(Channel.name)).all(),
+        channels=available_channels(db),
         selected_site_id=None,
         selected_channel_id=None,
         today=date.today().isoformat(),
@@ -450,6 +540,8 @@ def record_update(
     status: Annotated[str, Form()],
 ):
     record = get_or_404(db, BacklinkRecord, record_id)
+    channel = get_or_404(db, Channel, channel_id)
+    reject_blacklisted_channel(db, channel)
     record.target_site_id, record.channel_id = target_site_id, channel_id
     record.actual_url, record.anchor_text, record.published_at = actual_url.strip(), anchor_text.strip(), published_at
     record.method, record.status = PublishMethod(method), RecordStatus(status)
@@ -478,6 +570,7 @@ def task_new(request: Request, db: Db):
     eligible_channels = db.scalars(
         select(Channel).where(Channel.status == ChannelStatus.active, Channel.supports_automation.is_(True)).order_by(Channel.name)
     ).all()
+    eligible_channels = [channel for channel in eligible_channels if not is_channel_blacklisted(db, channel)]
     return render(
         request,
         "tasks/form.html",
@@ -497,6 +590,7 @@ def task_create(
 ):
     get_or_404(db, TargetSite, target_site_id)
     channel = get_or_404(db, Channel, channel_id)
+    reject_blacklisted_channel(db, channel)
     if channel.status != ChannelStatus.active or not channel.supports_automation:
         raise HTTPException(422, "只能为状态正常且支持自动化的渠道创建任务")
     db.add(AutomationTask(

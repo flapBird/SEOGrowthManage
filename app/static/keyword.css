@@ -21,7 +21,14 @@
 .quota { display: flex; align-items: baseline; gap: 6px; }
 .quota strong { font-size: 29px; }
 .quota span { color: var(--muted); }
+.select-filter { margin-bottom: 2px; background: #f8faf8; }
+.blacklist-section { margin-top: 20px; }
+.blacklist-list { padding: 8px 20px; max-height: 520px; overflow: auto; }
+.blacklist-list article { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.blacklist-list article:last-child { border-bottom: 0; }
+.blacklist-edit { display: grid; grid-template-columns: 1.1fr 1fr auto; gap: 8px; flex: 1; }
 @media (max-width: 760px) {
   .keyword-stats { grid-template-columns: 1fr 1fr; }
   .source-list > .source-row { align-items: flex-start; flex-direction: column; }
+  .blacklist-list article, .blacklist-edit { align-items: stretch; grid-template-columns: 1fr; flex-direction: column; }
 }

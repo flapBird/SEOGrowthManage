@@ -7,6 +7,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import joinedload
 
 from ..config import get_settings
+from ..channel_blacklist import is_channel_blacklisted
 from ..database import SessionLocal
 from ..models import (
     AutomationTask,
@@ -49,9 +50,9 @@ async def execute_task(task_id: int) -> None:
         )
         if task is None:
             return
-        if task.channel.status != ChannelStatus.active or not task.channel.supports_automation:
+        if task.channel.status != ChannelStatus.active or not task.channel.supports_automation or is_channel_blacklisted(db, task.channel):
             task.status = TaskStatus.needs_attention
-            task.last_error = "渠道已失效、被封禁或已关闭自动化，任务自动停止"
+            task.last_error = "渠道已失效、被封禁、进入黑名单或已关闭自动化，任务自动停止"
             add_log(db, task.id, "warning", task.last_error)
             db.commit()
             return

@@ -8,6 +8,7 @@ from app.models import (
     AutomationTask,
     BacklinkRecord,
     Channel,
+    ChannelBlacklist,
     ChannelCredential,
     PublishMethod,
     RecordStatus,
@@ -95,6 +96,63 @@ def test_query_dashboard_marks_auto_records(authenticated_client):
     assert response.status_code == 200
     assert "自动引擎" in response.text
     assert "forum.example/post/1" in response.text
+
+
+def test_empty_record_filters_do_not_raise_validation_error(authenticated_client):
+    response = authenticated_client.get("/records?target_site_id=&channel_id=&status=&method=")
+    assert response.status_code == 200
+    assert "外链发布记录" in response.text
+    assert authenticated_client.get("/records/duplicate-check?target_site_id=&channel_id=").status_code == 200
+
+
+def test_channel_blacklist_blocks_channels_and_record_selection(authenticated_client):
+    client = authenticated_client
+    client.post("/sites", data={"name": "目标站", "url": "https://target.example", "notes": ""})
+    allowed_data = {
+        "name": "可用渠道",
+        "url": "https://allowed.example/submit",
+        "channel_type": "directory",
+        "status": "active",
+        "notes": "",
+    }
+    blocked_data = {**allowed_data, "name": "应被隐藏渠道", "url": "https://sub.blocked.example/submit"}
+    assert client.post("/channels", data=allowed_data).status_code == 200
+    assert client.post("/channels", data=blocked_data).status_code == 200
+
+    response = client.post(
+        "/channel-blacklist/import",
+        data={"entries": "https://www.blocked.example/path\n*.another-bad.example", "notes": "测试黑名单"},
+    )
+    assert response.status_code == 200
+    with SessionLocal() as db:
+        assert {entry.domain for entry in db.query(ChannelBlacklist).all()} == {"blocked.example", "another-bad.example"}
+        blocked_channel = db.query(Channel).filter_by(name="应被隐藏渠道").one()
+        blocked_channel_id = blocked_channel.id
+
+    record_form = client.get("/records/new")
+    assert "可用渠道" in record_form.text
+    assert "应被隐藏渠道" not in record_form.text
+    assert 'data-select-search="target-site"' in record_form.text
+    assert 'data-select-search="channel"' in record_form.text
+
+    with SessionLocal() as db:
+        site_id = db.query(TargetSite).one().id
+    blocked_record = client.post(
+        "/records",
+        data={
+            "target_site_id": site_id,
+            "channel_id": blocked_channel_id,
+            "actual_url": "https://sub.blocked.example/post/1",
+            "anchor_text": "测试",
+            "published_at": date.today().isoformat(),
+            "method": "manual",
+            "status": "live",
+        },
+    )
+    assert blocked_record.status_code == 422
+
+    rejected_channel = client.post("/channels", data={**blocked_data, "name": "新黑名单渠道"})
+    assert rejected_channel.status_code == 422
 
 
 def test_automation_success_creates_auto_live_record(monkeypatch):

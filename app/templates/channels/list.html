@@ -10,11 +10,14 @@
 </form>
 <section class="panel table-wrap"><table><thead><tr><th>渠道</th><th>类型</th><th>状态</th><th>自动化</th><th>凭据</th><th>操作</th></tr></thead><tbody>
 {% for channel in channels %}<tr>
-  <td><a class="name-link" href="/channels/{{ channel.id }}">{{ channel.name }}</a><small>{{ channel.url }}</small></td>
+  <td><a class="name-link" href="/channels/{{ channel.id }}">{{ channel.name }}</a>{% if channel.id in blacklisted_channel_ids %} <span class="badge channel-banned">黑名单</span>{% endif %}<small>{{ channel.url }}</small></td>
   <td>{{ channel_type_labels[channel.channel_type] }}</td><td><span class="badge channel-{{ channel.status.value }}">{{ channel_status_labels[channel.status] }}</span></td>
   <td>{{ '支持' if channel.supports_automation else '—' }}</td><td>{{ '已配置' if channel.credential else '未配置' }}</td>
   <td class="row-actions"><a href="/records?channel_id={{ channel.id }}">渠道看板</a><a href="/channels/{{ channel.id }}/edit">编辑</a></td>
 </tr>{% else %}<tr><td colspan="6" class="empty">还没有外链渠道。</td></tr>{% endfor %}
 </tbody></table></section>
+<div class="grid-two blacklist-section">
+  <section class="panel form-card"><h2>批量添加外链黑名单</h2><p class="muted">每行填写一个域名或 URL。根域加入后，其所有子域也会被拦截。</p><form method="post" action="/channel-blacklist/import" class="stack"><label>黑名单数据<textarea name="entries" rows="8" required placeholder="spam.example&#10;https://bad.example/path&#10;*.blocked.example"></textarea></label><label>统一备注<input name="notes" placeholder="可选，例如：垃圾站群"></label><button class="primary">批量加入黑名单</button></form></section>
+  <section class="panel"><div class="panel-head"><h2>已保存黑名单（{{ blacklist|length }}）</h2></div><div class="blacklist-list">{% for entry in blacklist %}<article><form method="post" action="/channel-blacklist/{{ entry.id }}/update" class="blacklist-edit"><input name="domain" value="{{ entry.domain }}" required><input name="notes" value="{{ entry.notes or '' }}" placeholder="备注"><button>保存</button></form><form method="post" action="/channel-blacklist/{{ entry.id }}/delete" onsubmit="return confirm('确定从黑名单移除？')"><button class="danger-link">删除</button></form></article>{% else %}<div class="empty">当前没有黑名单数据。</div>{% endfor %}</div></section>
+</div>
 {% endblock %}
-

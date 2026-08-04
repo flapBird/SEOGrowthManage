@@ -108,6 +108,16 @@ class Channel(Base):
     tasks: Mapped[list[AutomationTask]] = relationship(back_populates="channel", cascade="all, delete-orphan")
 
 
+class ChannelBlacklist(Base):
+    __tablename__ = "channel_blacklist"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    domain: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+
 class ChannelCredential(Base):
     __tablename__ = "channel_credentials"
     __table_args__ = (UniqueConstraint("channel_id"),)
