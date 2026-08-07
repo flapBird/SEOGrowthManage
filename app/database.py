@@ -63,3 +63,9 @@ def run_lightweight_migrations(target_engine) -> None:
             connection.execute(text("ALTER TABLE channels ADD COLUMN login_username VARCHAR(255)"))
         if "login_password" not in existing:
             connection.execute(text("ALTER TABLE channels ADD COLUMN login_password VARCHAR(255)"))
+        if "link_type" not in existing:
+            connection.execute(text("ALTER TABLE channels ADD COLUMN link_type VARCHAR(8)"))
+        if "dr_value" not in existing:
+            connection.execute(text("ALTER TABLE channels ADD COLUMN dr_value INTEGER"))
+        if "monthly_traffic" not in existing:
+            connection.execute(text("ALTER TABLE channels ADD COLUMN monthly_traffic INTEGER"))

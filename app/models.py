@@ -27,6 +27,11 @@ class ChannelStatus(str, enum.Enum):
     banned = "banned"
 
 
+class LinkType(str, enum.Enum):
+    dofollow = "dofollow"
+    nofollow = "nofollow"
+
+
 class PublishMethod(str, enum.Enum):
     manual = "manual"
     auto = "auto"
@@ -112,6 +117,9 @@ class Channel(Base):
     requires_login: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     login_username: Mapped[str | None] = mapped_column(String(255))
     login_password: Mapped[str | None] = mapped_column(String(255))
+    link_type: Mapped[LinkType | None] = mapped_column(Enum(LinkType), index=True)
+    dr_value: Mapped[int | None] = mapped_column(Integer)
+    monthly_traffic: Mapped[int | None] = mapped_column(Integer)
     supports_automation: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     adapter_key: Mapped[str | None] = mapped_column(String(80))
     adapter_config: Mapped[str | None] = mapped_column(Text)

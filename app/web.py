@@ -22,6 +22,7 @@ from .models import (
     ChannelCredential,
     ChannelStatus,
     ChannelType,
+    LinkType,
     PublishMethod,
     RecordStatus,
     SubmissionBatch,
@@ -94,9 +95,14 @@ templates.env.globals.update(
         SubmissionItemStatus.completed: "已完成",
         SubmissionItemStatus.cancelled: "已取消",
     },
-    ChannelType=ChannelType,
-    ChannelStatus=ChannelStatus,
-    PublishMethod=PublishMethod,
+   ChannelType=ChannelType,
+   ChannelStatus=ChannelStatus,
+    LinkType=LinkType,
+    link_type_labels={
+        LinkType.dofollow: "Dofollow",
+        LinkType.nofollow: "Nofollow",
+    },
+   PublishMethod=PublishMethod,
     RecordStatus=RecordStatus,
     SubmissionBatchStatus=SubmissionBatchStatus,
     SubmissionItemStatus=SubmissionItemStatus,
@@ -150,8 +156,20 @@ def optional_int(value: str | int | None, field_name: str) -> int | None:
         return None
     try:
         return int(value)
+   except (TypeError, ValueError) as exc:
+       raise HTTPException(422, f"{field_name} 必须是有效整数") from exc
+
+
+def optional_positive_int(value: str | int | None, field_name: str) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        parsed = int(value)
     except (TypeError, ValueError) as exc:
         raise HTTPException(422, f"{field_name} 必须是有效整数") from exc
+    if parsed < 0:
+        raise HTTPException(422, f"{field_name} 不能为负数")
+    return parsed
 
 
 def reject_blacklisted_channel(db: Session, channel: Channel) -> None:
@@ -295,7 +313,7 @@ def channel_new(request: Request):
     return render(request, "channels/form.html", channel=None)
 
 
-def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str, status: str, supports_automation: str | None, adapter_key: str, adapter_config: str, notes: str, requires_login: str | None = None, channel_type_other: str = "", login_username: str = "", login_password: str = "") -> None:
+def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str, status: str, supports_automation: str | None, adapter_key: str, adapter_config: str, notes: str, requires_login: str | None = None, channel_type_other: str = "", login_username: str = "", login_password: str = "", link_type: str = "", dr_value: str = "", monthly_traffic: str = "") -> None:
     if adapter_config.strip():
         try:
             json.loads(adapter_config)
@@ -311,6 +329,9 @@ def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str,
     channel.requires_login = requires_login == "on"
     channel.login_username = login_username.strip() or None
     channel.login_password = login_password.strip() or None
+    channel.link_type = LinkType(link_type) if link_type else None
+    channel.dr_value = optional_positive_int(dr_value, "DR 数值")
+    channel.monthly_traffic = optional_positive_int(monthly_traffic, "月度流量")
     channel.supports_automation = supports_automation == "on"
     channel.adapter_key = adapter_key.strip() or None
     channel.adapter_config = adapter_config.strip() or None
@@ -332,9 +353,12 @@ def channel_create(
     channel_type_other: Annotated[str, Form()] = "",
     login_username: Annotated[str, Form()] = "",
     login_password: Annotated[str, Form()] = "",
+    link_type: Annotated[str, Form()] = "",
+    dr_value: Annotated[str, Form()] = "",
+    monthly_traffic: Annotated[str, Form()] = "",
 ):
     channel = Channel(name="", url="", channel_type=ChannelType.forum)
-    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, login_username, login_password)
+    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, login_username, login_password, link_type, dr_value, monthly_traffic)
     reject_blacklisted_channel(db, channel)
     db.add(channel)
     db.commit()
