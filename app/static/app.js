@@ -48,3 +48,23 @@ function bindInteractiveFields(root = document) {
 
 document.addEventListener("DOMContentLoaded", () => bindInteractiveFields());
 document.addEventListener("htmx:afterSwap", (event) => bindInteractiveFields(event.detail.target));
+
+function syncConditionalFields(root = document) {
+  root.querySelectorAll("[data-show-when-value]").forEach((field) => {
+    const source = document.querySelector(field.dataset.showWhenValue);
+    if (!source) return;
+    const target = field;
+    const expected = field.dataset.showWhenMatch;
+    const apply = () => {
+      const current = source.type === "checkbox" ? (source.checked ? "on" : "") : source.value;
+      const show = current === expected;
+      target.hidden = !show;
+      if (!show) target.querySelectorAll("input,textarea,select").forEach((input) => (input.required = false));
+    };
+    apply();
+    source.addEventListener("change", apply);
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => syncConditionalFields());
+document.addEventListener("htmx:afterSwap", (event) => syncConditionalFields(event.detail.target));

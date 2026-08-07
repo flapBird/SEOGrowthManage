@@ -18,6 +18,7 @@ class ChannelType(str, enum.Enum):
     directory = "directory"
     blog_comment = "blog_comment"
     advertorial = "advertorial"
+    other = "other"
 
 
 class ChannelStatus(str, enum.Enum):
@@ -106,7 +107,11 @@ class Channel(Base):
     name: Mapped[str] = mapped_column(String(120), index=True)
     url: Mapped[str] = mapped_column(String(2048))
     channel_type: Mapped[ChannelType] = mapped_column(Enum(ChannelType), index=True)
+    channel_type_other: Mapped[str | None] = mapped_column(String(80))
     status: Mapped[ChannelStatus] = mapped_column(Enum(ChannelStatus), default=ChannelStatus.active, index=True)
+    requires_login: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    login_username: Mapped[str | None] = mapped_column(String(255))
+    login_password: Mapped[str | None] = mapped_column(String(255))
     supports_automation: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     adapter_key: Mapped[str | None] = mapped_column(String(80))
     adapter_config: Mapped[str | None] = mapped_column(Text)

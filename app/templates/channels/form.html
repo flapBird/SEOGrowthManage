@@ -4,8 +4,11 @@
 <div class="page-heading"><div><p class="eyebrow">外链渠道</p><h1>{{ '编辑渠道' if channel else '新增渠道' }}</h1></div></div>
 <form class="panel form-card stack" method="post" action="{{ '/channels/' ~ channel.id if channel else '/channels' }}">
   <div class="form-grid"><label>渠道名称<input name="name" value="{{ channel.name if channel else '' }}" required></label><label>渠道网址<input type="url" name="url" value="{{ channel.url if channel else '' }}" required></label></div>
-  <div class="form-grid"><label>渠道类型<select name="channel_type">{% for value in ChannelType %}<option value="{{ value.value }}" {{ 'selected' if channel and channel.channel_type == value }}>{{ channel_type_labels[value] }}</option>{% endfor %}</select></label>
+  <div class="form-grid"><label>渠道类型<select id="channel_type_select" name="channel_type">{% for value in ChannelType %}<option value="{{ value.value }}" {{ 'selected' if channel and channel.channel_type == value }}>{{ channel_type_labels[value] }}</option>{% endfor %}</select></label>
   <label>状态<select name="status">{% for value in ChannelStatus %}<option value="{{ value.value }}" {{ 'selected' if channel and channel.status == value }}>{{ channel_status_labels[value] }}</option>{% endfor %}</select></label></div>
+  <div data-show-when-value="#channel_type_select" data-show-when-match="other" {% if not channel or channel.channel_type != ChannelType.other %}hidden{% endif %}><label>自定义类型名称（必填）<input name="channel_type_other" maxlength="80" value="{{ channel.channel_type_other if channel and channel.channel_type_other else '' }}" placeholder="例如：导航站、问答平台、书签站"></label></div>
+  <label class="check"><input type="checkbox" id="channel_requires_login" name="requires_login" value="on" {{ 'checked' if channel and channel.requires_login }}> 需要登录后才能提交</label>
+  <div data-show-when-value="#channel_requires_login" data-show-when-match="on" {% if not channel or not channel.requires_login %}hidden{% endif %}><div class="form-grid"><label>登录账号<input name="login_username" autocomplete="username" value="{{ channel.login_username or '' if channel else '' }}" placeholder="登录渠道用的用户名/邮箱"></label><label>登录密码<input type="text" name="login_password" autocomplete="off" value="{{ channel.login_password or '' if channel else '' }}" placeholder="明文保存，方便随时查看"></label></div></div>
   <label class="check"><input type="checkbox" name="supports_automation" {{ 'checked' if channel and channel.supports_automation }}> 支持自动化提交</label>
   <details {{ 'open' if channel and channel.supports_automation }}><summary>自动化适配器配置</summary>
     <div class="stack inset"><label>适配器<select name="adapter_key"><option value="">未配置</option><option value="playwright_form" {{ 'selected' if channel and channel.adapter_key == 'playwright_form' }}>Playwright 通用表单示例</option></select></label>
@@ -15,4 +18,3 @@
   <div class="actions"><a class="button" href="{{ '/channels/' ~ channel.id if channel else '/channels' }}">取消</a><button class="primary" type="submit">保存</button></div>
 </form>
 {% endblock %}
-

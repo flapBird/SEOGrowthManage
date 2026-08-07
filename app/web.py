@@ -46,14 +46,26 @@ from .security import (
 )
 
 
+CHANNEL_TYPE_LABELS = {
+    ChannelType.forum: "论坛",
+    ChannelType.directory: "目录",
+    ChannelType.blog_comment: "博客评论",
+    ChannelType.advertorial: "软文平台",
+    ChannelType.other: "其它",
+}
+
+
+def channel_type_display(channel) -> str:
+    """渠道类型展示文案：自定义类型优先返回用户填写的内容。"""
+    if channel.channel_type == ChannelType.other and channel.channel_type_other:
+        return channel.channel_type_other
+    return CHANNEL_TYPE_LABELS.get(channel.channel_type, channel.channel_type.value)
+
+
 templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
 templates.env.globals.update(
-    channel_type_labels={
-        ChannelType.forum: "论坛",
-        ChannelType.directory: "目录",
-        ChannelType.blog_comment: "博客评论",
-        ChannelType.advertorial: "软文平台",
-    },
+    channel_type_labels=CHANNEL_TYPE_LABELS,
+    channel_type_display=channel_type_display,
     channel_status_labels={
         ChannelStatus.active: "正常",
         ChannelStatus.inactive: "失效",
@@ -283,7 +295,7 @@ def channel_new(request: Request):
     return render(request, "channels/form.html", channel=None)
 
 
-def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str, status: str, supports_automation: str | None, adapter_key: str, adapter_config: str, notes: str) -> None:
+def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str, status: str, supports_automation: str | None, adapter_key: str, adapter_config: str, notes: str, requires_login: str | None = None, channel_type_other: str = "", login_username: str = "", login_password: str = "") -> None:
     if adapter_config.strip():
         try:
             json.loads(adapter_config)
@@ -292,7 +304,13 @@ def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str,
     channel.name = name.strip()
     channel.url = url.strip()
     channel.channel_type = ChannelType(channel_type)
+    channel.channel_type_other = channel_type_other.strip() if channel.channel_type == ChannelType.other else None
+    if channel.channel_type == ChannelType.other and not channel.channel_type_other:
+        raise HTTPException(422, "选择「其它」类型时必须填写自定义类型名称")
     channel.status = ChannelStatus(status)
+    channel.requires_login = requires_login == "on"
+    channel.login_username = login_username.strip() or None
+    channel.login_password = login_password.strip() or None
     channel.supports_automation = supports_automation == "on"
     channel.adapter_key = adapter_key.strip() or None
     channel.adapter_config = adapter_config.strip() or None
@@ -310,9 +328,13 @@ def channel_create(
     adapter_key: Annotated[str, Form()] = "",
     adapter_config: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
+    requires_login: Annotated[str | None, Form()] = None,
+    channel_type_other: Annotated[str, Form()] = "",
+    login_username: Annotated[str, Form()] = "",
+    login_password: Annotated[str, Form()] = "",
 ):
     channel = Channel(name="", url="", channel_type=ChannelType.forum)
-    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes)
+    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, login_username, login_password)
     reject_blacklisted_channel(db, channel)
     db.add(channel)
     db.commit()
@@ -353,9 +375,13 @@ def channel_update(
     adapter_key: Annotated[str, Form()] = "",
     adapter_config: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
+    requires_login: Annotated[str | None, Form()] = None,
+    channel_type_other: Annotated[str, Form()] = "",
+    login_username: Annotated[str, Form()] = "",
+    login_password: Annotated[str, Form()] = "",
 ):
     channel = get_or_404(db, Channel, channel_id)
-    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes)
+    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, login_username, login_password)
     reject_blacklisted_channel(db, channel)
     db.commit()
     return redirect(f"/channels/{channel_id}", "渠道已更新")

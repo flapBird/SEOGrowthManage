@@ -8,7 +8,8 @@
 <form class="panel form-card stack batch-form" method="post" action="/submission-batches">
   <div class="form-grid">
     <label>外链渠道
-      <select name="channel_id" required hx-get="/submission-batches/site-options" hx-target="#site-options-frame" hx-trigger="change">
+      <input class="select-filter" type="search" data-select-search="batch-channel" placeholder="输入名称或网址筛选渠道">
+      <select id="batch-channel" name="channel_id" required hx-get="/submission-batches/site-options" hx-target="#site-options-frame" hx-trigger="change">
         <option value="">请选择非黑名单渠道</option>
         {% for channel in channels %}<option value="{{ channel.id }}" {{ 'selected' if selected_channel_id == channel.id }}>{{ channel.name }} · {{ channel.url }}</option>{% endfor %}
       </select>

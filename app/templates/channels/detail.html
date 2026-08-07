@@ -3,7 +3,9 @@
 {% block content %}
 <div class="page-heading"><div><p class="eyebrow">渠道详情</p><h1>{{ channel.name }}</h1><p><a href="{{ channel.url }}" target="_blank" rel="noopener">{{ channel.url }}</a></p></div><div class="actions"><a class="button" href="/records?channel_id={{ channel.id }}">渠道发布看板</a><a class="button primary" href="/submission-batches/new?channel_id={{ channel.id }}">批量提交 / 安排计划</a><a class="button" href="/channels/{{ channel.id }}/edit">编辑渠道</a></div></div>
 <div class="grid-two">
-<section class="panel detail-list"><h2>基本信息</h2><dl><dt>类型</dt><dd>{{ channel_type_labels[channel.channel_type] }}</dd><dt>状态</dt><dd><span class="badge channel-{{ channel.status.value }}">{{ channel_status_labels[channel.status] }}</span></dd><dt>自动化</dt><dd>{{ '支持 · ' ~ (channel.adapter_key or '未选择适配器') if channel.supports_automation else '不支持' }}</dd><dt>备注</dt><dd>{{ channel.notes or '—' }}</dd></dl></section>
+<section class="panel detail-list"><h2>基本信息</h2><dl><dt>类型</dt><dd>{{ channel_type_display(channel) }}</dd><dt>状态</dt><dd><span class="badge channel-{{ channel.status.value }}">{{ channel_status_labels[channel.status] }}</span></dd><dt>自动化</dt><dd>{{ '支持 · ' ~ (channel.adapter_key or '未选择适配器') if channel.supports_automation else '不支持' }}</dd><dt>备注</dt><dd>{{ channel.notes or '—' }}</dd></dl></section>
+<section class="panel detail-list"><h2>提交要求</h2><dl><dt>需要登录</dt><dd>{{ '是' if channel.requires_login else '否' }}</dd></dl></section>
+{% if channel.requires_login %}<section class="panel detail-list"><h2>登录账号信息</h2><dl><dt>账号</dt><dd>{{ channel.login_username or '—' }}</dd><dt>密码</dt><dd>{{ channel.login_password or '—' }}</dd></dl><p class="muted">明文存储，编辑渠道即可修改。</p></section>{% endif %}
 <section class="panel"><div class="panel-head"><h2>登录凭据</h2>{% if channel.credential %}<form method="post" action="/channels/{{ channel.id }}/credential/delete" onsubmit="return confirm('确定删除凭据？')"><button class="danger-link">删除凭据</button></form>{% endif %}</div>
   <p class="muted">敏感字段使用 Fernet 加密存储；留空则保留原值。</p>
   <form method="post" action="/channels/{{ channel.id }}/credential" class="stack">

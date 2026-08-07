@@ -10,6 +10,7 @@ from app.models import (
     Channel,
     ChannelBlacklist,
     ChannelCredential,
+    ChannelType,
     PublishMethod,
     RecordStatus,
     SubmissionBatch,
@@ -350,3 +351,52 @@ def test_automation_failure_writes_only_log_and_needs_attention(monkeypatch):
         assert task.status == TaskStatus.needs_attention
         assert db.query(BacklinkRecord).count() == 0
         assert task.logs
+
+
+def test_channel_other_type_requires_login_and_validation(authenticated_client):
+    client = authenticated_client
+    # 选择「其它」类型但未填自定义名称应被拒绝（422）
+    rejected = client.post(
+        "/channels",
+        data={
+            "name": "导航站",
+            "url": "https://nav.example",
+            "channel_type": "other",
+            "status": "active",
+            "requires_login": "on",
+        },
+    )
+    assert rejected.status_code == 422
+    # 填上自定义名称并标记需要登录应创建成功
+    response = client.post(
+        "/channels",
+        data={
+            "name": "导航站",
+            "url": "https://nav.example",
+            "channel_type": "other",
+            "channel_type_other": "导航站",
+            "status": "active",
+            "requires_login": "on",
+            "login_username": "seo_user",
+            "login_password": "p@ss1234",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    with SessionLocal() as db:
+        channel = db.query(Channel).filter_by(name="导航站").one()
+        assert channel.channel_type == ChannelType.other
+        assert channel.channel_type_other == "导航站"
+        assert channel.requires_login is True
+        assert channel.login_username == "seo_user"
+        assert channel.login_password == "p@ss1234"
+        channel_id = channel.id
+    # 详情页和列表页应展示自定义类型与需登录标记
+    detail = client.get(f"/channels/{channel_id}")
+    assert "导航站" in detail.text
+    assert "需要登录" in detail.text
+    assert "seo_user" in detail.text
+    assert "p@ss1234" in detail.text
+    listing = client.get("/channels")
+    assert "导航站" in listing.text
+    assert "需登录" in listing.text

@@ -39,3 +39,27 @@ def get_db() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+
+def run_lightweight_migrations(target_engine) -> None:
+    """为已存在的 SQLite 表补列。
+
+    Base.metadata.create_all 只建新表不改旧表，所以新字段需要在这里幂等补上，
+    避免存量数据库缺少列时报错。
+    """
+    if not settings.database_url.startswith("sqlite"):
+        return
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(target_engine)
+    if "channels" not in inspector.get_table_names():
+        return
+    existing = {column["name"] for column in inspector.get_columns("channels")}
+    with target_engine.begin() as connection:
+        if "channel_type_other" not in existing:
+            connection.execute(text("ALTER TABLE channels ADD COLUMN channel_type_other VARCHAR(80)"))
+        if "requires_login" not in existing:
+            connection.execute(text("ALTER TABLE channels ADD COLUMN requires_login BOOLEAN NOT NULL DEFAULT 0"))
+        if "login_username" not in existing:
+            connection.execute(text("ALTER TABLE channels ADD COLUMN login_username VARCHAR(255)"))
+        if "login_password" not in existing:
+            connection.execute(text("ALTER TABLE channels ADD COLUMN login_password VARCHAR(255)"))
