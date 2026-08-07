@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}新建提交批次{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">批量登记与计划</p><h1>新建提交批次</h1><p class="muted">同一渠道一次选择多个网站；可以先保存为计划，也可以立即生成正式发布记录。</p></div>
+  <a class="button" href="/submission-batches">返回提交计划</a>
+</div>
+<form class="panel form-card stack batch-form" method="post" action="/submission-batches">
+  <div class="form-grid">
+    <label>外链渠道
+      <select name="channel_id" required hx-get="/submission-batches/site-options" hx-target="#site-options-frame" hx-trigger="change">
+        <option value="">请选择非黑名单渠道</option>
+        {% for channel in channels %}<option value="{{ channel.id }}" {{ 'selected' if selected_channel_id == channel.id }}>{{ channel.name }} · {{ channel.url }}</option>{% endfor %}
+      </select>
+    </label>
+    <label>计划 / 发布日期<input type="date" name="scheduled_for" value="{{ today }}" required></label>
+  </div>
+  <label>批次名称（可选）<input name="title" maxlength="200" placeholder="例如：8 月目录站集中提交"></label>
+  <section class="picker-section">
+    <div class="section-title"><div><h2>选择目标网站</h2><p class="muted">绿色提示表示该网站在本渠道已有正常记录，但仍允许重复提交。</p></div></div>
+    <div id="site-options-frame">{% include "submission_batches/_site_options.html" %}</div>
+  </section>
+  <label>统一查看地址<input type="url" name="shared_url" placeholder="例如个人主页、产品列表页或提交结果页；保存计划时可留空"></label>
+  <div class="form-grid">
+    <label>统一锚文本（可选）<input name="anchor_text" maxlength="500" placeholder="个人主页类渠道可留空"></label>
+    <label>完成后记录状态<select name="record_status"><option value="live">正常</option><option value="pending">待确认</option></select></label>
+  </div>
+  <label>批次备注<textarea name="notes" rows="4" placeholder="账号位置、提交要求或后续核实说明"></textarea></label>
+  <div class="alert warning">“保存为计划”不会产生发布记录；点击“立即登记完成”才会为每个所选网站生成一条人工发布记录，统一使用上面的查看地址。</div>
+  <div class="actions batch-actions">
+    <a class="button" href="/submission-batches">取消</a>
+    <button type="submit" name="submit_action" value="plan">保存为提交计划</button>
+    <button class="primary" type="submit" name="submit_action" value="complete">立即登记完成</button>
+  </div>
+</form>
+{% endblock %}

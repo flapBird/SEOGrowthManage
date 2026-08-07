@@ -13,7 +13,7 @@
   <td><a class="name-link" href="/channels/{{ channel.id }}">{{ channel.name }}</a>{% if channel.id in blacklisted_channel_ids %} <span class="badge channel-banned">黑名单</span>{% endif %}<small>{{ channel.url }}</small></td>
   <td>{{ channel_type_labels[channel.channel_type] }}</td><td><span class="badge channel-{{ channel.status.value }}">{{ channel_status_labels[channel.status] }}</span></td>
   <td>{{ '支持' if channel.supports_automation else '—' }}</td><td>{{ '已配置' if channel.credential else '未配置' }}</td>
-  <td class="row-actions"><a href="/records?channel_id={{ channel.id }}">渠道看板</a><a href="/channels/{{ channel.id }}/edit">编辑</a></td>
+  <td class="row-actions"><a href="/submission-batches/new?channel_id={{ channel.id }}">批量提交</a><a href="/records?channel_id={{ channel.id }}">渠道看板</a><a href="/channels/{{ channel.id }}/edit">编辑</a></td>
 </tr>{% else %}<tr><td colspan="6" class="empty">还没有外链渠道。</td></tr>{% endfor %}
 </tbody></table></section>
 <div class="grid-two blacklist-section">

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ channel.name }}{% endblock %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">渠道详情</p><h1>{{ channel.name }}</h1><p><a href="{{ channel.url }}" target="_blank" rel="noopener">{{ channel.url }}</a></p></div><div class="actions"><a class="button" href="/records?channel_id={{ channel.id }}">渠道发布看板</a><a class="button primary" href="/channels/{{ channel.id }}/edit">编辑渠道</a></div></div>
+<div class="page-heading"><div><p class="eyebrow">渠道详情</p><h1>{{ channel.name }}</h1><p><a href="{{ channel.url }}" target="_blank" rel="noopener">{{ channel.url }}</a></p></div><div class="actions"><a class="button" href="/records?channel_id={{ channel.id }}">渠道发布看板</a><a class="button primary" href="/submission-batches/new?channel_id={{ channel.id }}">批量提交 / 安排计划</a><a class="button" href="/channels/{{ channel.id }}/edit">编辑渠道</a></div></div>
 <div class="grid-two">
 <section class="panel detail-list"><h2>基本信息</h2><dl><dt>类型</dt><dd>{{ channel_type_labels[channel.channel_type] }}</dd><dt>状态</dt><dd><span class="badge channel-{{ channel.status.value }}">{{ channel_status_labels[channel.status] }}</span></dd><dt>自动化</dt><dd>{{ '支持 · ' ~ (channel.adapter_key or '未选择适配器') if channel.supports_automation else '不支持' }}</dd><dt>备注</dt><dd>{{ channel.notes or '—' }}</dd></dl></section>
 <section class="panel"><div class="panel-head"><h2>登录凭据</h2>{% if channel.credential %}<form method="post" action="/channels/{{ channel.id }}/credential/delete" onsubmit="return confirm('确定删除凭据？')"><button class="danger-link">删除凭据</button></form>{% endif %}</div>
@@ -13,6 +13,11 @@
     <button class="primary" type="submit">加密保存凭据</button>
   </form>
 </section></div>
+<section class="panel channel-batches"><div class="panel-head"><h2>最近提交批次</h2><a href="/submission-batches?channel_id={{ channel.id }}">查看全部</a></div><div class="compact-list">
+{% for batch in batches %}
+{% set completed_count = batch.items|selectattr('status', 'equalto', SubmissionItemStatus.completed)|list|length %}
+<a href="/submission-batches/{{ batch.id }}"><div><strong>{{ batch.title or ('提交批次 #' ~ batch.id) }}</strong><span>{{ batch.scheduled_for }} · {{ completed_count }}/{{ batch.items|length }} 个网站完成</span></div><span class="badge batch-{{ batch.status.value }}">{{ submission_batch_status_labels[batch.status] }}</span></a>
+{% else %}<div class="empty">这个渠道还没有批量提交或计划。</div>{% endfor %}
+</div></section>
 <section class="danger-zone"><h2>危险操作</h2><form method="post" action="/channels/{{ channel.id }}/delete" onsubmit="return confirm('将同时删除凭据、发布记录和任务，确定吗？')"><button class="danger">删除此渠道</button></form></section>
 {% endblock %}
-

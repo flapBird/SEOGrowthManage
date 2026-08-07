@@ -24,11 +24,16 @@ from .models import (
     ChannelType,
     PublishMethod,
     RecordStatus,
+    SubmissionBatch,
+    SubmissionBatchItem,
+    SubmissionBatchStatus,
+    SubmissionItemStatus,
     KeywordCandidateStatus,
     KeywordFetchStatus,
     KeywordSourceType,
     TargetSite,
     TaskStatus,
+    now_local,
 )
 from .security import (
     SESSION_COOKIE,
@@ -66,10 +71,23 @@ templates.env.globals.update(
         TaskStatus.failed: "等待重试",
         TaskStatus.needs_attention: "需人工介入",
     },
+    submission_batch_status_labels={
+        SubmissionBatchStatus.planned: "待提交",
+        SubmissionBatchStatus.partial: "部分完成",
+        SubmissionBatchStatus.completed: "已完成",
+        SubmissionBatchStatus.cancelled: "已取消",
+    },
+    submission_item_status_labels={
+        SubmissionItemStatus.planned: "待提交",
+        SubmissionItemStatus.completed: "已完成",
+        SubmissionItemStatus.cancelled: "已取消",
+    },
     ChannelType=ChannelType,
     ChannelStatus=ChannelStatus,
     PublishMethod=PublishMethod,
     RecordStatus=RecordStatus,
+    SubmissionBatchStatus=SubmissionBatchStatus,
+    SubmissionItemStatus=SubmissionItemStatus,
     TaskStatus=TaskStatus,
     KeywordCandidateStatus=KeywordCandidateStatus,
     KeywordFetchStatus=KeywordFetchStatus,
@@ -179,7 +197,21 @@ def dashboard(request: Request, db: Db):
         .order_by(AutomationTask.created_at.desc())
         .limit(8)
     ).all()
-    return render(request, "dashboard.html", sites=sites, channels=channels, recent_records=recent_records, pending_tasks=pending_tasks)
+    pending_batches = db.scalars(
+        select(SubmissionBatch)
+        .options(joinedload(SubmissionBatch.channel), joinedload(SubmissionBatch.items))
+        .where(SubmissionBatch.status.in_([SubmissionBatchStatus.planned, SubmissionBatchStatus.partial]))
+        .order_by(SubmissionBatch.scheduled_for.asc(), SubmissionBatch.id.asc())
+    ).unique().all()
+    return render(
+        request,
+        "dashboard.html",
+        sites=sites,
+        channels=channels,
+        recent_records=recent_records,
+        pending_tasks=pending_tasks,
+        pending_batches=pending_batches,
+    )
 
 
 @router.get("/sites", response_class=HTMLResponse)
@@ -294,7 +326,14 @@ def channel_detail(request: Request, channel_id: int, db: Db):
     )
     if channel is None:
         raise HTTPException(404, "渠道不存在")
-    return render(request, "channels/detail.html", channel=channel)
+    batches = db.scalars(
+        select(SubmissionBatch)
+        .options(joinedload(SubmissionBatch.items))
+        .where(SubmissionBatch.channel_id == channel_id)
+        .order_by(SubmissionBatch.scheduled_for.desc(), SubmissionBatch.id.desc())
+        .limit(10)
+    ).unique().all()
+    return render(request, "channels/detail.html", channel=channel, batches=batches)
 
 
 @router.get("/channels/{channel_id}/edit", response_class=HTMLResponse)
@@ -420,6 +459,270 @@ def channel_blacklist_delete(entry_id: int, db: Db):
     return redirect("/channels", "黑名单条目已删除")
 
 
+def submission_batch_or_404(db: Session, batch_id: int) -> SubmissionBatch:
+    batch = db.execute(
+        select(SubmissionBatch)
+        .options(
+            joinedload(SubmissionBatch.channel),
+            joinedload(SubmissionBatch.items).joinedload(SubmissionBatchItem.target_site),
+            joinedload(SubmissionBatch.items).joinedload(SubmissionBatchItem.record),
+        )
+        .where(SubmissionBatch.id == batch_id)
+    ).unique().scalar_one_or_none()
+    if batch is None:
+        raise HTTPException(404, "提交批次不存在")
+    return batch
+
+
+def refresh_submission_batch_status(batch: SubmissionBatch) -> None:
+    planned = sum(item.status == SubmissionItemStatus.planned for item in batch.items)
+    completed = sum(item.status == SubmissionItemStatus.completed for item in batch.items)
+    if planned:
+        batch.status = SubmissionBatchStatus.partial if completed else SubmissionBatchStatus.planned
+        batch.completed_at = None
+    else:
+        batch.status = SubmissionBatchStatus.completed if completed else SubmissionBatchStatus.cancelled
+        batch.completed_at = batch.completed_at or now_local()
+
+
+def complete_submission_items(
+    db: Session,
+    batch: SubmissionBatch,
+    item_ids: list[int],
+    actual_url: str,
+    anchor_text: str,
+    published_at: date,
+    record_status: RecordStatus,
+) -> int:
+    actual_url = actual_url.strip()
+    if not actual_url:
+        raise HTTPException(422, "完成提交时必须填写统一查看地址")
+    selected_ids = set(item_ids)
+    selected_items = [
+        item for item in batch.items
+        if item.id in selected_ids and item.status == SubmissionItemStatus.planned
+    ]
+    if not selected_items:
+        raise HTTPException(422, "请至少选择一个尚未完成的网站")
+    if len(selected_items) != len(selected_ids):
+        raise HTTPException(422, "选择中包含无效或已经处理的网站")
+    for item in selected_items:
+        record = BacklinkRecord(
+            target_site_id=item.target_site_id,
+            channel_id=batch.channel_id,
+            actual_url=actual_url,
+            anchor_text=anchor_text.strip(),
+            published_at=published_at,
+            method=PublishMethod.manual,
+            status=record_status,
+        )
+        db.add(record)
+        db.flush()
+        item.record_id = record.id
+        item.status = SubmissionItemStatus.completed
+        item.completed_at = now_local()
+    batch.shared_url = actual_url
+    batch.anchor_text = anchor_text.strip() or None
+    batch.record_status = record_status
+    refresh_submission_batch_status(batch)
+    return len(selected_items)
+
+
+def latest_live_dates_for_channel(db: Session, channel_id: int) -> dict[int, date]:
+    records = db.scalars(
+        select(BacklinkRecord)
+        .where(BacklinkRecord.channel_id == channel_id, BacklinkRecord.status == RecordStatus.live)
+        .order_by(BacklinkRecord.published_at.desc(), BacklinkRecord.id.desc())
+    ).all()
+    result: dict[int, date] = {}
+    for record in records:
+        result.setdefault(record.target_site_id, record.published_at)
+    return result
+
+
+@router.get("/submission-batches", response_class=HTMLResponse)
+def submission_batches_list(request: Request, db: Db, channel_id: str = "", status: str = ""):
+    selected_channel_id = optional_int(channel_id, "外链渠道")
+    stmt = select(SubmissionBatch).options(
+        joinedload(SubmissionBatch.channel), joinedload(SubmissionBatch.items)
+    )
+    if selected_channel_id:
+        stmt = stmt.where(SubmissionBatch.channel_id == selected_channel_id)
+    if status:
+        stmt = stmt.where(SubmissionBatch.status == SubmissionBatchStatus(status))
+    stmt = stmt.order_by(SubmissionBatch.scheduled_for.desc(), SubmissionBatch.id.desc())
+    return render(
+        request,
+        "submission_batches/list.html",
+        batches=db.scalars(stmt).unique().all(),
+        channels=available_channels(db),
+        selected_channel_id=selected_channel_id,
+        selected_status=status,
+    )
+
+
+@router.get("/submission-batches/new", response_class=HTMLResponse)
+def submission_batch_new(request: Request, db: Db, channel_id: str = ""):
+    selected_channel_id = optional_int(channel_id, "外链渠道")
+    channel = get_or_404(db, Channel, selected_channel_id) if selected_channel_id else None
+    if channel:
+        reject_blacklisted_channel(db, channel)
+    return render(
+        request,
+        "submission_batches/form.html",
+        channels=available_channels(db),
+        selected_channel_id=selected_channel_id,
+        sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
+        duplicate_dates=latest_live_dates_for_channel(db, selected_channel_id) if selected_channel_id else {},
+        today=date.today().isoformat(),
+    )
+
+
+@router.get("/submission-batches/site-options", response_class=HTMLResponse)
+def submission_batch_site_options(request: Request, db: Db, channel_id: str = ""):
+    selected_channel_id = optional_int(channel_id, "外链渠道")
+    return render(
+        request,
+        "submission_batches/_site_options.html",
+        sites=db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
+        duplicate_dates=latest_live_dates_for_channel(db, selected_channel_id) if selected_channel_id else {},
+    )
+
+
+@router.post("/submission-batches")
+def submission_batch_create(
+    db: Db,
+    channel_id: Annotated[int, Form()],
+    target_site_ids: Annotated[list[int], Form()],
+    scheduled_for: Annotated[date, Form()],
+    submit_action: Annotated[str, Form()],
+    title: Annotated[str, Form()] = "",
+    shared_url: Annotated[str, Form()] = "",
+    anchor_text: Annotated[str, Form()] = "",
+    record_status: Annotated[str, Form()] = "live",
+    notes: Annotated[str, Form()] = "",
+):
+    channel = get_or_404(db, Channel, channel_id)
+    reject_blacklisted_channel(db, channel)
+    site_ids = list(dict.fromkeys(target_site_ids))
+    sites = db.scalars(select(TargetSite).where(TargetSite.id.in_(site_ids))).all()
+    if not site_ids or len(sites) != len(site_ids):
+        raise HTTPException(422, "请选择有效的目标网站")
+    if submit_action not in {"plan", "complete"}:
+        raise HTTPException(422, "未知的保存方式")
+    parsed_record_status = RecordStatus(record_status)
+    if parsed_record_status == RecordStatus.removed:
+        raise HTTPException(422, "新批次不能登记为已失效")
+    batch = SubmissionBatch(
+        channel_id=channel_id,
+        title=title.strip() or None,
+        scheduled_for=scheduled_for,
+        shared_url=shared_url.strip() or None,
+        anchor_text=anchor_text.strip() or None,
+        record_status=parsed_record_status,
+        notes=notes.strip() or None,
+    )
+    db.add(batch)
+    db.flush()
+    items: list[SubmissionBatchItem] = []
+    for site_id in site_ids:
+        item = SubmissionBatchItem(batch=batch, target_site_id=site_id)
+        db.add(item)
+        items.append(item)
+    db.flush()
+    if submit_action == "complete":
+        complete_submission_items(
+            db,
+            batch,
+            [item.id for item in items],
+            shared_url,
+            anchor_text,
+            scheduled_for,
+            parsed_record_status,
+        )
+    db.commit()
+    message = "批量发布记录已生成" if submit_action == "complete" else "提交计划已创建"
+    return redirect(f"/submission-batches/{batch.id}", message)
+
+
+@router.get("/submission-batches/{batch_id}", response_class=HTMLResponse)
+def submission_batch_detail(request: Request, batch_id: int, db: Db):
+    batch = submission_batch_or_404(db, batch_id)
+    return render(request, "submission_batches/detail.html", batch=batch, today=date.today().isoformat())
+
+
+@router.post("/submission-batches/{batch_id}")
+def submission_batch_update(
+    batch_id: int,
+    db: Db,
+    scheduled_for: Annotated[date, Form()],
+    title: Annotated[str, Form()] = "",
+    shared_url: Annotated[str, Form()] = "",
+    anchor_text: Annotated[str, Form()] = "",
+    record_status: Annotated[str, Form()] = "live",
+    notes: Annotated[str, Form()] = "",
+):
+    batch = submission_batch_or_404(db, batch_id)
+    if not any(item.status == SubmissionItemStatus.planned for item in batch.items):
+        raise HTTPException(422, "该批次已经结束，不能再修改计划信息")
+    batch.title = title.strip() or None
+    batch.scheduled_for = scheduled_for
+    batch.shared_url = shared_url.strip() or None
+    batch.anchor_text = anchor_text.strip() or None
+    parsed_record_status = RecordStatus(record_status)
+    if parsed_record_status == RecordStatus.removed:
+        raise HTTPException(422, "提交计划不能预设为已失效")
+    batch.record_status = parsed_record_status
+    batch.notes = notes.strip() or None
+    db.commit()
+    return redirect(f"/submission-batches/{batch_id}", "提交计划已更新")
+
+
+@router.post("/submission-batches/{batch_id}/complete")
+def submission_batch_complete(
+    batch_id: int,
+    db: Db,
+    item_ids: Annotated[list[int], Form()],
+    actual_url: Annotated[str, Form()],
+    anchor_text: Annotated[str, Form()],
+    published_at: Annotated[date, Form()],
+    record_status: Annotated[str, Form()] = "live",
+):
+    batch = submission_batch_or_404(db, batch_id)
+    reject_blacklisted_channel(db, batch.channel)
+    parsed_record_status = RecordStatus(record_status)
+    if parsed_record_status == RecordStatus.removed:
+        raise HTTPException(422, "完成提交不能直接登记为已失效")
+    completed = complete_submission_items(
+        db, batch, item_ids, actual_url, anchor_text, published_at, parsed_record_status
+    )
+    db.commit()
+    return redirect(f"/submission-batches/{batch_id}", f"已完成 {completed} 个网站并生成发布记录")
+
+
+@router.post("/submission-batches/{batch_id}/cancel-remaining")
+def submission_batch_cancel_remaining(batch_id: int, db: Db):
+    batch = submission_batch_or_404(db, batch_id)
+    cancelled = 0
+    for item in batch.items:
+        if item.status == SubmissionItemStatus.planned:
+            item.status = SubmissionItemStatus.cancelled
+            cancelled += 1
+    if not cancelled:
+        raise HTTPException(422, "该批次没有待取消的网站")
+    refresh_submission_batch_status(batch)
+    db.commit()
+    return redirect(f"/submission-batches/{batch_id}", f"已取消剩余 {cancelled} 个计划")
+
+
+@router.post("/submission-batches/{batch_id}/delete")
+def submission_batch_delete(batch_id: int, db: Db):
+    batch = submission_batch_or_404(db, batch_id)
+    db.delete(batch)
+    db.commit()
+    return redirect("/submission-batches", "提交批次已删除；已经生成的正式发布记录仍然保留")
+
+
 @router.get("/records", response_class=HTMLResponse)
 def records_list(
     request: Request,
@@ -431,7 +734,11 @@ def records_list(
 ):
     selected_site_id = optional_int(target_site_id, "目标网站")
     selected_channel_id = optional_int(channel_id, "外链渠道")
-    stmt = select(BacklinkRecord).options(joinedload(BacklinkRecord.target_site), joinedload(BacklinkRecord.channel))
+    stmt = select(BacklinkRecord).options(
+        joinedload(BacklinkRecord.target_site),
+        joinedload(BacklinkRecord.channel),
+        joinedload(BacklinkRecord.submission_item),
+    )
     if selected_site_id:
         stmt = stmt.where(BacklinkRecord.target_site_id == selected_site_id)
     if selected_channel_id:

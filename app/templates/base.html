@@ -6,6 +6,7 @@
   <title>{% block title %}SEO 工作台{% endblock %} · SEO Growth Console</title>
   <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/keyword.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/batch.css') }}">
   <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
   <script src="{{ url_for('static', path='/app.js') }}" defer></script>
 </head>
@@ -15,6 +16,7 @@
     <nav>
       <a href="/sites">目标网站</a>
       <a href="/channels">外链渠道</a>
+      <a href="/submission-batches">提交计划</a>
       <a href="/records">发布记录</a>
       <a href="/tasks">自动任务</a>
       <a href="/keywords">关键词发现</a>

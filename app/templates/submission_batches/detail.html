@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}{{ batch.title or ('提交批次 #' ~ batch.id) }}{% endblock %}
+{% block content %}
+{% set planned_items = batch.items|selectattr('status', 'equalto', SubmissionItemStatus.planned)|list %}
+{% set completed_items = batch.items|selectattr('status', 'equalto', SubmissionItemStatus.completed)|list %}
+<div class="page-heading">
+  <div><p class="eyebrow">提交批次 #{{ batch.id }}</p><h1>{{ batch.title or batch.channel.name }}</h1><p class="muted">{{ batch.scheduled_for }} · {{ batch.items|length }} 个目标网站</p></div>
+  <div class="actions"><a class="button" href="/submission-batches">返回列表</a><a class="button" href="/records?channel_id={{ batch.channel_id }}">渠道发布看板</a></div>
+</div>
+<section class="stats batch-stats">
+  <a><strong>{{ batch.items|length }}</strong><span>批次网站</span></a>
+  <a><strong>{{ planned_items|length }}</strong><span>待提交</span></a>
+  <a><strong>{{ completed_items|length }}</strong><span>已完成</span></a>
+  <a><strong><span class="badge batch-{{ batch.status.value }}">{{ submission_batch_status_labels[batch.status] }}</span></strong><span>批次状态</span></a>
+</section>
+<div class="grid-two batch-detail-grid">
+  <section class="panel detail-list"><h2>批次信息</h2><dl>
+    <dt>外链渠道</dt><dd><a href="/channels/{{ batch.channel_id }}">{{ batch.channel.name }}</a></dd>
+    <dt>计划日期</dt><dd>{{ batch.scheduled_for }}</dd>
+    <dt>查看地址</dt><dd>{% if batch.shared_url %}<a href="{{ batch.shared_url }}" target="_blank" rel="noopener">{{ batch.shared_url }}</a>{% else %}—{% endif %}</dd>
+    <dt>统一锚文本</dt><dd>{{ batch.anchor_text or '—' }}</dd>
+    <dt>记录状态</dt><dd>{{ record_status_labels[batch.record_status] }}</dd>
+    <dt>备注</dt><dd>{{ batch.notes or '—' }}</dd>
+  </dl></section>
+  {% if planned_items %}
+  <section class="panel form-card"><h2>修改计划信息</h2><form method="post" action="/submission-batches/{{ batch.id }}" class="stack inset">
+    <label>批次名称<input name="title" value="{{ batch.title or '' }}"></label>
+    <label>计划日期<input type="date" name="scheduled_for" value="{{ batch.scheduled_for }}" required></label>
+    <label>预填统一查看地址<input type="url" name="shared_url" value="{{ batch.shared_url or '' }}"></label>
+    <div class="form-grid"><label>统一锚文本<input name="anchor_text" value="{{ batch.anchor_text or '' }}"></label><label>完成后状态<select name="record_status"><option value="live" {{ 'selected' if batch.record_status == RecordStatus.live }}>正常</option><option value="pending" {{ 'selected' if batch.record_status == RecordStatus.pending }}>待确认</option></select></label></div>
+    <label>备注<textarea name="notes" rows="3">{{ batch.notes or '' }}</textarea></label>
+    <button>保存计划修改</button>
+  </form></section>
+  {% else %}
+  <section class="panel detail-list"><h2>处理结果</h2><p>{{ '全部或部分网站已经生成正式发布记录。' if completed_items else '这个批次已取消，没有生成发布记录。' }}</p>{% if batch.completed_at %}<p class="muted">结束时间：{{ batch.completed_at }}</p>{% endif %}</section>
+  {% endif %}
+</div>
+
+{% if planned_items %}
+<section class="panel completion-panel">
+  <div class="panel-head"><div><h2>完成本批次</h2><small>勾选本次实际提交成功的网站；未勾选的网站继续保留在计划中。</small></div></div>
+  <form method="post" action="/submission-batches/{{ batch.id }}/complete" class="stack batch-complete-form">
+    <div class="site-picker-tools"><input type="search" data-checkbox-search="pending-batch-sites" placeholder="搜索待提交网站"><label class="check"><input type="checkbox" data-check-all="pending-batch-sites"> 全选当前可见网站</label></div>
+    <div id="pending-batch-sites" class="site-picker">
+      {% for item in planned_items %}<label class="site-choice" data-search-text="{{ item.target_site.name }} {{ item.target_site.url }}"><input type="checkbox" name="item_ids" value="{{ item.id }}"><span><strong>{{ item.target_site.name }}</strong><small>{{ item.target_site.url }}</small></span></label>{% endfor %}
+    </div>
+    <label>统一查看地址<input type="url" name="actual_url" value="{{ batch.shared_url or '' }}" required placeholder="个人主页、产品列表页或提交结果页"></label>
+    <div class="form-grid"><label>统一锚文本（可留空）<input name="anchor_text" value="{{ batch.anchor_text or '' }}"></label><label>实际发布日期<input type="date" name="published_at" value="{{ today }}" required></label></div>
+    <label>发布记录状态<select name="record_status"><option value="live" {{ 'selected' if batch.record_status == RecordStatus.live }}>正常</option><option value="pending" {{ 'selected' if batch.record_status == RecordStatus.pending }}>待确认</option></select></label>
+    <button class="primary" type="submit">将选中网站标记完成并生成记录</button>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel table-wrap batch-items-table"><div class="panel-head"><h2>批次网站明细</h2></div><table><thead><tr><th>目标网站</th><th>状态</th><th>正式记录</th><th>完成时间</th></tr></thead><tbody>
+{% for item in batch.items %}<tr><td><strong>{{ item.target_site.name }}</strong><small>{{ item.target_site.url }}</small></td><td><span class="badge item-{{ item.status.value }}">{{ submission_item_status_labels[item.status] }}</span></td><td>{% if item.record %}<a href="/records/{{ item.record.id }}/edit">记录 #{{ item.record.id }}</a><small><a href="{{ item.record.actual_url }}" target="_blank" rel="noopener">{{ item.record.actual_url }}</a></small>{% else %}—{% endif %}</td><td>{{ item.completed_at or '—' }}</td></tr>{% endfor %}
+</tbody></table></section>
+
+<section class="danger-zone"><h2>批次操作</h2><div class="actions">
+  {% if planned_items %}<form method="post" action="/submission-batches/{{ batch.id }}/cancel-remaining" onsubmit="return confirm('取消所有尚未完成的网站计划？')"><button>取消剩余计划</button></form>{% endif %}
+  <form method="post" action="/submission-batches/{{ batch.id }}/delete" onsubmit="return confirm('删除批次？已经生成的正式发布记录会保留。')"><button class="danger">删除批次</button></form>
+</div></section>
+{% endblock %}

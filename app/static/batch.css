@@ -1,0 +1,43 @@
+.stats {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.batch-form { max-width: 960px; }
+.picker-section { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.section-title { padding: 16px 18px; border-bottom: 1px solid var(--line); background: #f9faf9; }
+.section-title h2 { margin: 0; }
+.section-title p { margin: 3px 0 0; }
+.site-picker-tools { display: flex; align-items: center; gap: 18px; padding: 14px 18px; border-bottom: 1px solid var(--line); background: #fff; }
+.site-picker-tools input[type="search"] { max-width: 420px; }
+.site-picker { max-height: 390px; overflow: auto; }
+.site-choice { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--line); font-weight: 500; cursor: pointer; }
+.site-choice:last-child { border-bottom: 0; }
+.site-choice:hover { background: #f7faf8; }
+.site-choice > input { width: auto; }
+.site-choice span { min-width: 0; }
+.site-choice strong, .site-choice small { display: block; }
+.site-choice small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.site-choice[hidden] { display: none; }
+.batch-actions { justify-content: flex-end; }
+.batch-planned, .batch-partial, .item-planned { background: #fff3d6; color: #7a4b00; }
+.batch-completed, .item-completed { background: #e8f5ed; color: #17643c; }
+.batch-cancelled, .item-cancelled { background: #f1f1f1; color: #555; }
+.batch-stats .badge { font-size: 13px; }
+.batch-detail-grid { align-items: start; }
+.completion-panel, .batch-items-table, .channel-batches { margin-top: 20px; }
+.batch-complete-form { padding: 20px; }
+.batch-items-table .panel-head { min-width: 800px; }
+
+@media (max-width: 980px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .site-choice { grid-template-columns: auto minmax(0, 1fr); }
+  .site-choice em { grid-column: 2; }
+  .site-picker-tools { align-items: stretch; flex-direction: column; }
+  .site-picker-tools input[type="search"] { max-width: none; }
+}

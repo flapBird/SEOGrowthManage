@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}发布记录{% endblock %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">查询看板</p><h1>外链发布记录</h1><p class="muted">按目标网站或渠道查看发布分布，默认按发布日期倒序。</p></div><a class="button primary" href="/records/new">登记发布记录</a></div>
+<div class="page-heading"><div><p class="eyebrow">查询看板</p><h1>外链发布记录</h1><p class="muted">按目标网站或渠道查看发布分布，默认按发布日期倒序。</p></div><div class="actions"><a class="button" href="/records/new">单条登记</a><a class="button primary" href="/submission-batches/new">批量登记 / 安排计划</a></div></div>
 <form class="filters" method="get">
   <select name="target_site_id"><option value="">全部目标网站</option>{% for site in sites %}<option value="{{ site.id }}" {{ 'selected' if selected_site_id == site.id }}>{{ site.name }}</option>{% endfor %}</select>
   <select name="channel_id"><option value="">全部外链渠道</option>{% for channel in channels %}<option value="{{ channel.id }}" {{ 'selected' if selected_channel_id == channel.id }}>{{ channel.name }}</option>{% endfor %}</select>
@@ -13,8 +13,7 @@
 {% for record in records %}<tr>
   <td><a class="name-link" href="/records?target_site_id={{ record.target_site_id }}">{{ record.target_site.name }}</a><small>→ <a href="/records?channel_id={{ record.channel_id }}">{{ record.channel.name }}</a></small></td>
   <td><a href="{{ record.actual_url }}" target="_blank" rel="noopener">{{ record.actual_url }}</a><small>锚文本：{{ record.anchor_text }}</small></td><td>{{ record.published_at }}</td>
-  <td><span class="badge {{ record.method.value }}">{{ '自动引擎' if record.method == PublishMethod.auto else '人工' }}</span></td><td><span class="badge record-{{ record.status.value }}">{{ record_status_labels[record.status] }}</span></td>
+  <td><span class="badge {{ record.method.value }}">{{ '自动引擎' if record.method == PublishMethod.auto else '人工' }}</span>{% if record.submission_item %}<small><a href="/submission-batches/{{ record.submission_item.batch_id }}">批量登记 #{{ record.submission_item.batch_id }}</a></small>{% endif %}</td><td><span class="badge record-{{ record.status.value }}">{{ record_status_labels[record.status] }}</span></td>
   <td class="row-actions"><a href="/records/{{ record.id }}/edit">编辑</a><form method="post" action="/records/{{ record.id }}/delete" onsubmit="return confirm('确定删除这条记录？')"><button class="danger-link">删除</button></form></td>
 </tr>{% else %}<tr><td colspan="6" class="empty">没有符合条件的发布记录。</td></tr>{% endfor %}</tbody></table></section>
 {% endblock %}
-

@@ -37,6 +37,19 @@ class RecordStatus(str, enum.Enum):
     removed = "removed"
 
 
+class SubmissionBatchStatus(str, enum.Enum):
+    planned = "planned"
+    partial = "partial"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
+class SubmissionItemStatus(str, enum.Enum):
+    planned = "planned"
+    completed = "completed"
+    cancelled = "cancelled"
+
+
 class TaskStatus(str, enum.Enum):
     pending = "pending"
     running = "running"
@@ -106,6 +119,9 @@ class Channel(Base):
         back_populates="channel", cascade="all, delete-orphan", uselist=False
     )
     tasks: Mapped[list[AutomationTask]] = relationship(back_populates="channel", cascade="all, delete-orphan")
+    submission_batches: Mapped[list[SubmissionBatch]] = relationship(
+        back_populates="channel", cascade="all, delete-orphan"
+    )
 
 
 class ChannelBlacklist(Base):
@@ -147,6 +163,54 @@ class BacklinkRecord(Base):
 
     target_site: Mapped[TargetSite] = relationship(back_populates="records")
     channel: Mapped[Channel] = relationship(back_populates="records")
+    submission_item: Mapped[SubmissionBatchItem | None] = relationship(back_populates="record", uselist=False)
+
+
+class SubmissionBatch(Base):
+    __tablename__ = "submission_batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    channel_id: Mapped[int] = mapped_column(ForeignKey("channels.id", ondelete="CASCADE"), index=True)
+    title: Mapped[str | None] = mapped_column(String(200))
+    scheduled_for: Mapped[date] = mapped_column(Date, index=True)
+    shared_url: Mapped[str | None] = mapped_column(String(2048))
+    anchor_text: Mapped[str | None] = mapped_column(String(500))
+    record_status: Mapped[RecordStatus] = mapped_column(Enum(RecordStatus), default=RecordStatus.live)
+    notes: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[SubmissionBatchStatus] = mapped_column(
+        Enum(SubmissionBatchStatus), default=SubmissionBatchStatus.planned, index=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+    channel: Mapped[Channel] = relationship(back_populates="submission_batches")
+    items: Mapped[list[SubmissionBatchItem]] = relationship(
+        back_populates="batch",
+        cascade="all, delete-orphan",
+        order_by="SubmissionBatchItem.id",
+    )
+
+
+class SubmissionBatchItem(Base):
+    __tablename__ = "submission_batch_items"
+    __table_args__ = (UniqueConstraint("batch_id", "target_site_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    batch_id: Mapped[int] = mapped_column(ForeignKey("submission_batches.id", ondelete="CASCADE"), index=True)
+    target_site_id: Mapped[int] = mapped_column(ForeignKey("target_sites.id", ondelete="CASCADE"), index=True)
+    record_id: Mapped[int | None] = mapped_column(
+        ForeignKey("backlink_records.id", ondelete="SET NULL"), unique=True, index=True
+    )
+    status: Mapped[SubmissionItemStatus] = mapped_column(
+        Enum(SubmissionItemStatus), default=SubmissionItemStatus.planned, index=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+    batch: Mapped[SubmissionBatch] = relationship(back_populates="items")
+    target_site: Mapped[TargetSite] = relationship()
+    record: Mapped[BacklinkRecord | None] = relationship(back_populates="submission_item")
 
 
 class AutomationTask(Base):

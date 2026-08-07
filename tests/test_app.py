@@ -12,6 +12,9 @@ from app.models import (
     ChannelCredential,
     PublishMethod,
     RecordStatus,
+    SubmissionBatch,
+    SubmissionBatchStatus,
+    SubmissionItemStatus,
     TargetSite,
     TaskStatus,
 )
@@ -153,6 +156,128 @@ def test_channel_blacklist_blocks_channels_and_record_selection(authenticated_cl
 
     rejected_channel = client.post("/channels", data={**blocked_data, "name": "新黑名单渠道"})
     assert rejected_channel.status_code == 422
+
+
+def test_submission_batch_plan_partial_completion_and_record_retention(authenticated_client):
+    client = authenticated_client
+    with SessionLocal() as db:
+        sites = [
+            TargetSite(name=f"产品站 {index}", url=f"https://product-{index}.example")
+            for index in range(1, 4)
+        ]
+        channel = Channel(
+            name="个人主页渠道",
+            url="https://profile.example/user/publisher",
+            channel_type="directory",
+            status="active",
+        )
+        db.add_all([*sites, channel])
+        db.commit()
+        site_ids = [site.id for site in sites]
+        channel_id = channel.id
+
+    response = client.post(
+        "/submission-batches",
+        data={
+            "channel_id": str(channel_id),
+            "target_site_ids": [str(site_id) for site_id in site_ids],
+            "scheduled_for": date.today().isoformat(),
+            "submit_action": "plan",
+            "title": "三站个人主页提交",
+            "shared_url": "",
+            "anchor_text": "",
+            "record_status": "live",
+            "notes": "统一放在个人主页",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    with SessionLocal() as db:
+        batch = db.query(SubmissionBatch).one()
+        batch_id = batch.id
+        assert batch.status == SubmissionBatchStatus.planned
+        assert len(batch.items) == 3
+        assert db.query(BacklinkRecord).count() == 0
+        first_item_ids = [item.id for item in batch.items[:2]]
+
+    response = client.post(
+        f"/submission-batches/{batch_id}/complete",
+        data={
+            "item_ids": [str(item_id) for item_id in first_item_ids],
+            "actual_url": "https://profile.example/user/publisher",
+            "anchor_text": "",
+            "published_at": date.today().isoformat(),
+            "record_status": "live",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    with SessionLocal() as db:
+        batch = db.get(SubmissionBatch, batch_id)
+        assert batch.status == SubmissionBatchStatus.partial
+        assert sum(item.status == SubmissionItemStatus.completed for item in batch.items) == 2
+        assert sum(item.status == SubmissionItemStatus.planned for item in batch.items) == 1
+        assert db.query(BacklinkRecord).count() == 2
+        last_item_id = next(item.id for item in batch.items if item.status == SubmissionItemStatus.planned)
+
+    dashboard = client.get("/")
+    assert "三站个人主页提交" in dashboard.text
+    assert "部分完成" in dashboard.text
+
+    response = client.post(
+        f"/submission-batches/{batch_id}/complete",
+        data={
+            "item_ids": str(last_item_id),
+            "actual_url": "https://profile.example/user/publisher",
+            "anchor_text": "",
+            "published_at": date.today().isoformat(),
+            "record_status": "live",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    with SessionLocal() as db:
+        assert db.get(SubmissionBatch, batch_id).status == SubmissionBatchStatus.completed
+        assert db.query(BacklinkRecord).count() == 3
+
+    assert client.post(f"/submission-batches/{batch_id}/delete", follow_redirects=False).status_code == 303
+    with SessionLocal() as db:
+        assert db.get(SubmissionBatch, batch_id) is None
+        assert db.query(BacklinkRecord).count() == 3
+
+
+def test_submission_batch_can_immediately_create_multiple_records(authenticated_client):
+    with SessionLocal() as db:
+        sites = [TargetSite(name="站点 A", url="https://a.example"), TargetSite(name="站点 B", url="https://b.example")]
+        channel = Channel(name="产品列表", url="https://list.example/products", channel_type="directory", status="active")
+        db.add_all([*sites, channel])
+        db.commit()
+        site_ids = [site.id for site in sites]
+        channel_id = channel.id
+
+    response = authenticated_client.post(
+        "/submission-batches",
+        data={
+            "channel_id": str(channel_id),
+            "target_site_ids": [str(site_id) for site_id in site_ids],
+            "scheduled_for": date.today().isoformat(),
+            "submit_action": "complete",
+            "shared_url": "https://list.example/products",
+            "anchor_text": "产品列表",
+            "record_status": "pending",
+        },
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    with SessionLocal() as db:
+        batch = db.query(SubmissionBatch).one()
+        records = db.query(BacklinkRecord).all()
+        assert batch.status == SubmissionBatchStatus.completed
+        assert len(records) == 2
+        assert {record.target_site_id for record in records} == set(site_ids)
+        assert all(record.actual_url == "https://list.example/products" for record in records)
+        assert all(record.status == RecordStatus.pending for record in records)
+        assert all(record.method == PublishMethod.manual for record in records)
 
 
 def test_automation_success_creates_auto_live_record(monkeypatch):

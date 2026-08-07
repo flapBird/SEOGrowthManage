@@ -1,0 +1,13 @@
+<div class="site-picker-tools">
+  <input type="search" data-checkbox-search="batch-site-options" placeholder="输入网站名称或网址筛选">
+  <label class="check"><input type="checkbox" data-check-all="batch-site-options"> 全选当前可见网站</label>
+</div>
+<div id="batch-site-options" class="site-picker">
+  {% for site in sites %}
+  <label class="site-choice" data-search-text="{{ site.name }} {{ site.url }}">
+    <input type="checkbox" name="target_site_ids" value="{{ site.id }}">
+    <span><strong>{{ site.name }}</strong><small>{{ site.url }}</small></span>
+    {% if duplicate_dates.get(site.id) %}<em class="badge record-live">已有正常记录 · {{ duplicate_dates[site.id] }}</em>{% endif %}
+  </label>
+  {% else %}<div class="empty">还没有目标网站，请先录入网站。</div>{% endfor %}
+</div>

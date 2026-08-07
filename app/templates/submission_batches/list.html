@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}提交计划{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">批量外链工作流</p><h1>提交计划与批次</h1><p class="muted">计划到期不会自动向渠道提交；完成后批量生成正式发布记录。</p></div>
+  <a class="button primary" href="/submission-batches/new">新建提交批次</a>
+</div>
+<form class="filters" method="get">
+  <select name="channel_id"><option value="">全部外链渠道</option>{% for channel in channels %}<option value="{{ channel.id }}" {{ 'selected' if selected_channel_id == channel.id }}>{{ channel.name }}</option>{% endfor %}</select>
+  <select name="status"><option value="">全部状态</option>{% for value in SubmissionBatchStatus %}<option value="{{ value.value }}" {{ 'selected' if selected_status == value.value }}>{{ submission_batch_status_labels[value] }}</option>{% endfor %}</select>
+  <button type="submit">筛选</button><a href="/submission-batches">清除</a>
+</form>
+<section class="panel table-wrap"><table><thead><tr><th>计划日期 / 批次</th><th>渠道</th><th>网站进度</th><th>统一查看地址</th><th>状态</th><th>操作</th></tr></thead><tbody>
+{% for batch in batches %}
+{% set completed_count = batch.items|selectattr('status', 'equalto', SubmissionItemStatus.completed)|list|length %}
+<tr>
+  <td><a class="name-link" href="/submission-batches/{{ batch.id }}">{{ batch.title or ('提交批次 #' ~ batch.id) }}</a><small>{{ batch.scheduled_for }}</small></td>
+  <td><a href="/channels/{{ batch.channel_id }}">{{ batch.channel.name }}</a></td>
+  <td><strong>{{ completed_count }} / {{ batch.items|length }}</strong><small>已完成 / 总网站数</small></td>
+  <td>{% if batch.shared_url %}<a href="{{ batch.shared_url }}" target="_blank" rel="noopener">查看结果</a><small>{{ batch.shared_url }}</small>{% else %}—{% endif %}</td>
+  <td><span class="badge batch-{{ batch.status.value }}">{{ submission_batch_status_labels[batch.status] }}</span></td>
+  <td class="row-actions"><a href="/submission-batches/{{ batch.id }}">查看 / 处理</a></td>
+</tr>
+{% else %}<tr><td colspan="6" class="empty">还没有提交计划或批次。</td></tr>{% endfor %}
+</tbody></table></section>
+{% endblock %}
