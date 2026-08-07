@@ -156,8 +156,8 @@ def optional_int(value: str | int | None, field_name: str) -> int | None:
         return None
     try:
         return int(value)
-   except (TypeError, ValueError) as exc:
-       raise HTTPException(422, f"{field_name} 必须是有效整数") from exc
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(422, f"{field_name} 必须是有效整数") from exc
 
 
 def optional_positive_int(value: str | int | None, field_name: str) -> int | None:
