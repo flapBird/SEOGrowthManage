@@ -1085,8 +1085,8 @@ def agent_batch_detail(request: Request, batch_id: str, db: Db):
 
     # 读取批次文件内容
     dirs = _ensure_dirs()
-    in_path = (BASE_DIR.parent / batch.in_path) if batch.in_path else None
-    out_path = (BASE_DIR.parent / batch.out_path) if batch.out_path else None
+    in_path = (BASE_DIR / batch.in_path) if batch.in_path else None
+    out_path = (BASE_DIR / batch.out_path) if batch.out_path else None
 
     batch_data = None
     result_data = None

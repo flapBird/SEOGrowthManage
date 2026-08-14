@@ -16,8 +16,9 @@ from .notify import notify
 
 def _queue_root() -> Path:
     """Agent 队列根目录，固定在 data/ 卷下（容器 /app/data ↔ 宿主机 <repo>/data）。
-    这是容器进程和宿主机 Agent 唯一共享的物理位置，交接文件必须落在这里。"""
-    return BASE_DIR.parent / "data" / get_settings().agent_queue_dir
+    这是容器进程和宿主机 Agent 唯一共享的物理位置，交接文件必须落在这里。
+    BASE_DIR 本身就是项目根（容器内 /app），数据目录是 data/，不要再多套 .parent。"""
+    return BASE_DIR / "data" / get_settings().agent_queue_dir
 
 
 def _ensure_dirs() -> dict[str, Path]:
@@ -92,7 +93,7 @@ async def dispatch_due_to_agent() -> None:
         db.add(AgentBatch(
             batch_id=batch_id,
             candidate_count=len(worth),
-            in_path=str(in_path.relative_to(BASE_DIR.parent)),
+            in_path=str(in_path.relative_to(BASE_DIR)),
             status="dispatched",
         ))
         db.commit()
@@ -148,7 +149,7 @@ async def collect_agent_results() -> None:
             if batch is not None:
                 batch.status = "collected"
                 batch.collected_at = now_local()
-                batch.out_path = str(archived.relative_to(BASE_DIR.parent)) if archived.exists() else None
+                batch.out_path = str(archived.relative_to(BASE_DIR)) if archived.exists() else None
                 batch.message = f"回收 {updated} 个判断"
             db.commit()
             # Agent 判定的新晋 HOT 聚合推送（复用现有通知模块）。
