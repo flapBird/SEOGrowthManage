@@ -1083,7 +1083,9 @@ async def agent_collect_manual(request: Request, db: Db):
 @router.get("/agent/batches/{batch_id}")
 def agent_batch_detail(request: Request, batch_id: str, db: Db):
     """批次详情页面"""
-    batch = get_or_404(db, AgentBatch, batch_id=batch_id)
+    batch = db.scalar(select(AgentBatch).where(AgentBatch.batch_id == batch_id))
+    if batch is None:
+        raise HTTPException(404, "批次不存在")
 
     # 读取批次文件内容
     dirs = _ensure_dirs()
