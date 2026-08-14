@@ -1,325 +1,138 @@
-/* Agent Management Styles */
+/* Agent Management Styles
+   注意：只定义 Agent 页面独有的元素样式。
+   通用类（.button / button / .panel / .grid-two / .page-heading / .alert / .empty / .badge / .stats）
+   全部复用 style.css 的全局定义，这里绝不重复声明，否则会覆盖全局样式导致按钮变白等问题。
+   颜色一律硬编码（与 style.css 的 --accent 绿系一致），不引用任何 CSS 变量。 */
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 16px;
-    margin-top: 20px;
+/* —— Agent 仪表盘统计卡 —— */
+.agent-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
 }
 
-.stat-card {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-    border: 1px solid var(--border-color);
+.agent-stat-card {
+  background: #fff;
+  border: 1px solid #dce3de;
+  border-radius: 13px;
+  box-shadow: 0 10px 30px rgba(24, 49, 33, .07);
+  padding: 22px;
+  text-align: center;
 }
 
-.stat-number {
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--primary-color);
-    line-height: 1;
+.agent-stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #236b45;
+  line-height: 1;
 }
 
-.stat-label {
-    margin-top: 8px;
-    font-size: 14px;
-    color: var(--text-muted);
+.agent-stat-label {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #68736c;
 }
 
+/* —— 批次详情信息行 —— */
 .batch-info {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .info-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--bg-secondary);
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #dce3de;
+  border-radius: 8px;
 }
 
 .info-row label {
-    font-weight: 500;
-    color: var(--text);
+  font-weight: 650;
+  color: #17211b;
 }
 
+/* —— 待处理候选词列表 —— */
 .keyword-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .keyword-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--bg-secondary);
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #dce3de;
+  border-radius: 8px;
 }
 
-.keyword {
-    font-weight: 500;
-    color: var(--primary-color);
+.keyword-item .keyword {
+  font-weight: 650;
+  color: #236b45;
 }
 
-.meta {
-    font-size: 12px;
-    color: var(--text-muted);
-    background: var(--bg-tertiary);
-    padding: 2px 8px;
-    border-radius: 4px;
+.keyword-item .meta {
+  font-size: 12px;
+  color: #68736c;
+  background: #f4f6f3;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-/* Badge Styles */
-.batch-dispatched { background: #3b82f6; color: white; }
-.batch-collected { background: #10b981; color: white; }
-.batch-failed { background: #ef4444; color: white; }
+/* —— 批次状态 / Agent 判定结果徽章（加前缀，避免与全局 .badge 冲突） —— */
+.batch-dispatched { background: #e9f0ff; color: #234eaa; }
+.batch-collected { background: #e8f5ed; color: #17643c; }
+.batch-failed { background: #ffebe9; color: #a52218; }
 
-/* Table Styles */
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-}
+.verdict-hot { background: #ffebe9; color: #a52218; }
+.verdict-cold { background: #f1f1f1; color: #555; }
+.verdict-maybe { background: #fff6df; color: #7a4b00; }
 
-.data-table th {
-    text-align: left;
-    padding: 12px 16px;
-    background: var(--bg-secondary);
-    border-bottom: 2px solid var(--border-color);
-    font-weight: 600;
-    color: var(--text);
-}
-
-.data-table td {
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.data-table tr:hover {
-    background: var(--bg-secondary);
-}
-
-.data-table .empty {
-    text-align: center;
-    padding: 40px;
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-/* Score bar styles */
+/* —— 分数进度条（Agent 页面专属，全局没有） —— */
 .score-bar {
-    width: 100px;
-    height: 20px;
-    background: var(--bg-secondary);
-    border-radius: 10px;
-    overflow: hidden;
-    position: relative;
-    margin-right: 8px;
+  width: 100px;
+  height: 20px;
+  background: #f4f6f3;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin-right: 8px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .score-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
-    transition: width 0.3s ease;
+  height: 100%;
+  background: linear-gradient(90deg, #236b45 0%, #175cd3 100%);
+  transition: width .3s ease;
 }
 
 .score-value {
-    position: absolute;
-    right: 8px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text);
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 650;
+  color: #17211b;
 }
 
-/* Batch candidates table */
-.batch-candidates {
-    max-height: 400px;
-    overflow-y: auto;
-    margin-top: 16px;
-}
-
-/* Agent results table */
+/* —— 可滚动候选/结果表格容器 —— */
+.batch-candidates,
 .agent-results {
-    margin-top: 16px;
+  max-height: 400px;
+  overflow-y: auto;
+  margin-top: 16px;
 }
 
-/* Alert styles */
-.alert {
-    padding: 16px 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-}
-
-.alert.warning {
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fbbf24;
-}
-
-.alert.error {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #f87171;
-}
-
-/* Empty state */
-.empty {
-    text-align: center;
-    padding: 40px;
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-/* Button styles */
-.button {
-    display: inline-block;
-    padding: 8px 16px;
-    background: var(--bg-secondary);
-    color: var(--text);
-    text-decoration: none;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.button:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--primary-color);
-}
-
-.button.primary {
-    background: var(--primary-color);
-    color: white;
-    border-color: var(--primary-color);
-}
-
-.button.primary:hover {
-    background: var(--primary-color-dark);
-}
-
-.button.small {
-    padding: 4px 8px;
-    font-size: 14px;
-}
-
-.button.danger-link {
-    color: #ef4444;
-    background: transparent;
-    border: none;
-}
-
-.button.danger-link:hover {
-    color: #dc2626;
-    text-decoration: underline;
-}
-
-/* Link button */
-.link-button {
-    background: transparent;
-    border: none;
-    color: var(--text);
-    cursor: pointer;
-    font-size: 14px;
-    padding: 4px 0;
-}
-
-.link-button:hover {
-    text-decoration: underline;
-}
-
-/* Grid layout */
-.grid-two {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin-top: 24px;
-}
-
-/* Panel styles */
-.panel {
-    background: var(--bg-primary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    overflow: hidden;
-}
-
-.panel-head {
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.panel-head h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-/* Page heading */
-.page-heading {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-}
-
-.page-heading > div:first-child {
-    flex: 1;
-}
-
-.page-heading .eyebrow {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 8px;
-}
-
-.page-heading h1 {
-    margin: 0;
-    font-size: 32px;
-    font-weight: 700;
-    color: var(--text);
-}
-
-.page-heading .muted {
-    margin-top: 8px;
-    font-size: 14px;
-    color: var(--text-muted);
-}
-
-.page-heading .actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .grid-two {
-        grid-template-columns: 1fr;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .page-heading {
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .page-heading .actions {
-        flex-wrap: wrap;
-    }
+/* —— 内联表单按钮组（分发/收集），避免表单独占整行 —— */
+.inline-form {
+  display: inline;
 }

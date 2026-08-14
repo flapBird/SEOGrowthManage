@@ -12,8 +12,8 @@ Agent 集成未启用 · 请在 .env 中配置 agent_integration_enabled=true
 <div class="actions">
 {% if agent_enabled %}
 <a class="button" href="/agent/queue">队列状态</a>
-<form method="post" action="/agent/dispatch" style="display: inline;"><button class="primary">立即分发</button></form>
-<form method="post" action="/agent/collect" style="display: inline;"><button class="primary">立即收集</button></form>
+<form class="inline-form" method="post" action="/agent/dispatch"><button class="primary">立即分发</button></form>
+<form class="inline-form" method="post" action="/agent/collect"><button class="primary">立即收集</button></form>
 {% endif %}
 </div></div>
 
@@ -32,30 +32,30 @@ Agent 集成未启用 · 请在 .env 中配置 agent_integration_enabled=true
 <div class="grid-two">
 <section class="panel">
 <div class="panel-head"><h2>队列统计</h2></div>
-<div class="stats-grid">
-<div class="stat-card">
-<div class="stat-number">{{ stats.pending_files }}</div>
-<div class="stat-label">待分发批次</div>
+<div class="agent-stats">
+<div class="agent-stat-card">
+<div class="agent-stat-number">{{ stats.pending_files }}</div>
+<div class="agent-stat-label">待分发批次</div>
 </div>
-<div class="stat-card">
-<div class="stat-number">{{ stats.total }}</div>
-<div class="stat-label">总批次数</div>
+<div class="agent-stat-card">
+<div class="agent-stat-number">{{ stats.total }}</div>
+<div class="agent-stat-label">总批次数</div>
 </div>
-<div class="stat-card">
-<div class="stat-number">{{ stats.dispatched }}</div>
-<div class="stat-label">已分发</div>
+<div class="agent-stat-card">
+<div class="agent-stat-number">{{ stats.dispatched }}</div>
+<div class="agent-stat-label">已分发</div>
 </div>
-<div class="stat-card">
-<div class="stat-number">{{ stats.collected }}</div>
-<div class="stat-label">已回收</div>
+<div class="agent-stat-card">
+<div class="agent-stat-number">{{ stats.collected }}</div>
+<div class="agent-stat-label">已回收</div>
 </div>
 </div>
 </section>
 
 <section class="panel">
 <div class="panel-head"><h2>最近批次</h2></div>
-<div class="table-wrapper">
-<table class="data-table">
+<div class="table-wrap">
+<table>
 <thead>
 <tr>
 <th>批次ID</th>
@@ -77,7 +77,7 @@ Agent 集成未启用 · 请在 .env 中配置 agent_integration_enabled=true
 </span>
 </td>
 <td>
-<a href="/agent/batches/{{ batch.batch_id }}" class="button small">查看详情</a>
+<a href="/agent/batches/{{ batch.batch_id }}" class="button">查看详情</a>
 </td>
 </tr>
 {% else %}
