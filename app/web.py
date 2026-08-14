@@ -1042,12 +1042,14 @@ def agent_dashboard(request: Request, db: Db):
     if batches:
         last_activity = max(b.created_at for b in batches)
 
-    return render(request, "agent/dashboard.html", {
-        "batches": batches,
-        "stats": stats,
-        "last_activity": last_activity,
-        "agent_enabled": settings.agent_integration_enabled,
-    })
+    return render(
+        request,
+        "agent/dashboard.html",
+        batches=batches,
+        stats=stats,
+        last_activity=last_activity,
+        agent_enabled=settings.agent_integration_enabled,
+    )
 
 
 @router.post("/agent/dispatch")
@@ -1092,24 +1094,24 @@ def agent_batch_detail(request: Request, batch_id: str, db: Db):
     result_data = None
 
     if in_path and in_path.exists():
-        import json
         try:
             batch_data = json.loads(in_path.read_text(encoding="utf-8"))
-        except:
+        except (OSError, ValueError):
             batch_data = {"error": "无法读取批次文件"}
 
     if out_path and out_path.exists():
-        import json
         try:
             result_data = json.loads(out_path.read_text(encoding="utf-8"))
-        except:
+        except (OSError, ValueError):
             result_data = {"error": "无法读取结果文件"}
 
-    return render(request, "agent/batch_detail.html", {
-        "batch": batch,
-        "batch_data": batch_data,
-        "result_data": result_data,
-    })
+    return render(
+        request,
+        "agent/batch_detail.html",
+        batch=batch,
+        batch_data=batch_data,
+        result_data=result_data,
+    )
 
 
 @router.get("/agent/queue")
@@ -1125,7 +1127,6 @@ def agent_queue_status(request: Request, db: Db):
     pending_count = 0
     pending_keywords = []
     for f in pending_files:
-        import json
         try:
             data = json.loads(f.read_text(encoding="utf-8"))
             pending_count += len(data.get("candidates", []))
@@ -1135,13 +1136,15 @@ def agent_queue_status(request: Request, db: Db):
                     "batch_id": data.get("batch_id"),
                     "score": candidate.get("scores", {}).get("total"),
                 })
-        except:
+        except (OSError, ValueError):
             pass
 
-    return render(request, "agent/queue_status.html", {
-        "pending_files": len(pending_files),
-        "done_files": len(done_files),
-        "pending_count": pending_count,
-        "pending_keywords": pending_keywords[:10],  # 只显示前10个
-        "agent_enabled": settings.agent_integration_enabled,
-    })
+    return render(
+        request,
+        "agent/queue_status.html",
+        pending_files=len(pending_files),
+        done_files=len(done_files),
+        pending_count=pending_count,
+        pending_keywords=pending_keywords[:10],
+        agent_enabled=settings.agent_integration_enabled,
+    )
