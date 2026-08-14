@@ -49,6 +49,10 @@ Agent 集成未启用 · 请在 .env 中配置 agent_integration_enabled=true
 <div class="agent-stat-number">{{ stats.collected }}</div>
 <div class="agent-stat-label">已回收</div>
 </div>
+<div class="agent-stat-card">
+<div class="agent-stat-number">{{ stats.failed }}</div>
+<div class="agent-stat-label">已失效</div>
+</div>
 </div>
 </section>
 
@@ -73,7 +77,7 @@ Agent 集成未启用 · 请在 .env 中配置 agent_integration_enabled=true
 <td>{{ batch.candidate_count }}</td>
 <td>
 <span class="badge {{ 'batch-' + batch.status }}">
-{% if batch.status == 'dispatched' %}已分发{% elif batch.status == 'collected' %}已回收{% else %}{{ batch.status }}{% endif %}
+{% if batch.status == 'dispatched' %}已分发{% elif batch.status == 'collected' %}已回收{% elif batch.status == 'failed' %}已失效{% else %}{{ batch.status }}{% endif %}
 </span>
 </td>
 <td>

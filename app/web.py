@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session, joinedload
 from .config import BASE_DIR, get_settings
 from .database import get_db
 from .channel_blacklist import available_channels, is_channel_blacklisted, matching_blacklist_entry, normalize_blacklist_domain
-from .keyword_discovery.agent_queue import _ensure_dirs, _queue_root
+from .keyword_discovery.agent_queue import _ensure_dirs, _queue_root, dispatch_due_to_agent, collect_agent_results
 from .models import (
     AgentBatch,
     AutomationTask,
@@ -1033,6 +1033,7 @@ def agent_dashboard(request: Request, db: Db):
         "total": len(batches),
         "dispatched": sum(1 for b in batches if b.status == "dispatched"),
         "collected": sum(1 for b in batches if b.status == "collected"),
+        "failed": sum(1 for b in batches if b.status == "failed"),
         "pending_files": len(pending_files),
         "done_files": len(done_files),
     }
@@ -1114,6 +1115,22 @@ def agent_batch_detail(request: Request, batch_id: str, db: Db):
         batch_data=batch_data,
         result_data=result_data,
     )
+
+
+@router.post("/agent/batches/{batch_id}/invalidate")
+def agent_batch_invalidate(request: Request, batch_id: str, db: Db):
+    """手动把一个仍在「已分发」的批次标记为失效。
+    老批次（如历史 RSS 抓取生成的）如果不会被 Agent 回收了，用这里清掉，避免一直挂在仪表盘。
+    只改状态，不动队列文件，对应的候选词不被占用，下次分发仍可重新送出。"""
+    batch = db.scalar(select(AgentBatch).where(AgentBatch.batch_id == batch_id))
+    if batch is None:
+        raise HTTPException(404, "批次不存在")
+    if batch.status != "dispatched":
+        raise HTTPException(422, "只有「已分发」状态的批次可以标记为失效")
+    batch.status = "failed"
+    batch.message = f"手动标记失效（{now_local().strftime('%Y-%m-%d %H:%M')}）"
+    db.commit()
+    return redirect(f"/agent/batches/{batch_id}", "批次已标记为失效")
 
 
 @router.get("/agent/queue")

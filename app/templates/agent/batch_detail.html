@@ -35,8 +35,15 @@
 </div>
 <div class="info-row">
 <label>状态:</label>
+<span>
 <span class="badge {{ 'batch-' + batch.status }}">
-{% if batch.status == 'dispatched' %}已分发{% elif batch.status == 'collected' %}已回收{% else %}{{ batch.status }}{% endif %}
+{% if batch.status == 'dispatched' %}已分发{% elif batch.status == 'collected' %}已回收{% elif batch.status == 'failed' %}已失效{% else %}{{ batch.status }}{% endif %}
+</span>
+{% if batch.status == 'dispatched' %}
+<form class="inline-form" method="post" action="/agent/batches/{{ batch.batch_id }}/invalidate" onsubmit="return confirm('确定把这个批次标记为失效？它的候选词不会被回收，可在下次分发时重新送出。')">
+  <button class="danger-link">标记为失效</button>
+</form>
+{% endif %}
 </span>
 </div>
 {% if batch.message %}
