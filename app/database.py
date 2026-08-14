@@ -69,3 +69,17 @@ def run_lightweight_migrations(target_engine) -> None:
             connection.execute(text("ALTER TABLE channels ADD COLUMN dr_value INTEGER"))
         if "monthly_traffic" not in existing:
             connection.execute(text("ALTER TABLE channels ADD COLUMN monthly_traffic INTEGER"))
+
+    # KeywordCandidate 的 Agent 判断列（与规则判定分开存储）。
+    if "keyword_candidates" not in inspector.get_table_names():
+        return
+    kw_existing = {column["name"] for column in inspector.get_columns("keyword_candidates")}
+    with target_engine.begin() as connection:
+        if "agent_verdict" not in kw_existing:
+            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_verdict VARCHAR(20)"))
+        if "agent_kd" not in kw_existing:
+            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_kd INTEGER"))
+        if "agent_reason" not in kw_existing:
+            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_reason TEXT"))
+        if "agent_judged_at" not in kw_existing:
+            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_judged_at DATETIME"))

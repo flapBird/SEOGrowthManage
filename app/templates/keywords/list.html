@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}关键词发现{% endblock %}
 {% block content %}
-<div class="page-heading"><div><p class="eyebrow">SEO 机会雷达</p><h1>关键词候选</h1><p class="muted">自动聚合合规来源和搜索信号，只保留值得人工关注的候选。</p></div><div class="actions"><a class="button" href="/keyword-sources">来源与日志</a><a class="button primary" href="/serpapi-pools">SerpAPI 额度池</a></div></div>
+<div class="page-heading"><div><p class="eyebrow">SEO 机会雷达</p><h1>关键词候选</h1><p class="muted">自动聚合合规来源和搜索信号，只保留值得人工关注的候选。</p></div><div class="actions"><a class="button" href="/keyword-sources">来源与日志</a><a class="button" href="/notify-channels">通知设置</a><a class="button primary" href="/serpapi-pools">SerpAPI 额度池</a></div></div>
 <form class="filters" method="get"><input name="q" value="{{ q }}" placeholder="搜索关键词"><select name="status"><option value="">全部状态</option>{% for value in KeywordCandidateStatus %}<option value="{{ value.value }}" {{ 'selected' if selected_status == value.value }}>{{ keyword_status_labels[value] }}</option>{% endfor %}</select><button>筛选</button><a href="/keywords">清除</a></form>
 <div class="grid-two keyword-top-grid">
   <section class="panel form-card"><h2>人工导入候选</h2><p class="muted">每行一个游戏名，适合导入平台榜单、社群发现或已获授权的数据。</p><form method="post" action="/keywords/manual-import" class="stack"><label>目标语言<input name="language" value="en" maxlength="20"></label><label>关键词列表<textarea name="keywords" rows="6" required></textarea></label><button class="primary">导入并去重</button></form></section>

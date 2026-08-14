@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}批次详情{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Agent 管理</p><h1>批次详情</h1>
+<p class="muted">
+批次ID: {{ batch.batch_id }}
+</p></div>
+<div class="actions">
+<a class="button" href="/agent">返回仪表盘</a>
+</div></div>
+
+<div class="grid-two">
+<section class="panel">
+<div class="panel-head"><h2>批次信息</h2></div>
+<div class="batch-info">
+<div class="info-row">
+<label>批次ID:</label>
+<span>{{ batch.batch_id }}</span>
+</div>
+<div class="info-row">
+<label>创建时间:</label>
+<span>{{ batch.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+</div>
+<div class="info-row">
+<label>分发时间:</label>
+<span>{{ batch.dispatched_at.strftime('%Y-%m-%d %H:%M:%S') if batch.dispatched_at else '未分发' }}</span>
+</div>
+<div class="info-row">
+<label>回收时间:</label>
+<span>{{ batch.collected_at.strftime('%Y-%m-%d %H:%M:%S') if batch.collected_at else '未回收' }}</span>
+</div>
+<div class="info-row">
+<label>候选数量:</label>
+<span>{{ batch.candidate_count }}</span>
+</div>
+<div class="info-row">
+<label>状态:</label>
+<span class="badge {{ 'batch-' + batch.status }}">
+{% if batch.status == 'dispatched' %}已分发{% elif batch.status == 'collected' %}已回收{% else %}{{ batch.status }}{% endif %}
+</span>
+</div>
+{% if batch.message %}
+<div class="info-row">
+<label>消息:</label>
+<span>{{ batch.message }}</span>
+</div>
+{% endif %}
+</div>
+</section>
+
+<section class="panel">
+<div class="panel-head"><h2>批次内容</h2></div>
+{% if batch_data %}
+{% if batch_data.error %}
+<div class="alert error">
+<p>❌ 无法读取批次文件: {{ batch_data.error }}</p>
+</div>
+{% else %}
+<div class="batch-candidates">
+<table class="data-table">
+<thead>
+<tr>
+<th>关键词</th>
+<th>语言</th>
+<th>国家</th>
+<th>来源数</th>
+<th>总评分</th>
+</tr>
+</thead>
+<tbody>
+{% for candidate in batch_data.candidates %}
+<tr>
+<td>{{ candidate.keyword }}</td>
+<td>{{ candidate.language or '未知' }}</td>
+<td>{{ candidate.country or '未知' }}</td>
+<td>{{ candidate.source_count or 0 }}</td>
+<td>
+<div class="score-bar">
+<div class="score-fill" style="width: {{ (candidate.scores.total / 100 * 100) | round | int }}%"></div>
+</div>
+<span class="score-value">{{ candidate.scores.total }}</span>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+{% else %}
+<div class="empty">暂无批次数据</div>
+{% endif %}
+</section>
+
+{% if result_data %}
+<section class="panel">
+<div class="panel-head"><h2>Agent 结果</h2></div>
+{% if result_data.error %}
+<div class="alert error">
+<p>❌ 无法读取结果文件: {{ result_data.error }}</p>
+</div>
+{% else %}
+<div class="agent-results">
+<table class="data-table">
+<thead>
+<tr>
+<th>关键词</th>
+<th>判定结果</th>
+<th>预估KD</th>
+<th>说明</th>
+<th>判断时间</th>
+</tr>
+</thead>
+<tbody>
+{% for result in result_data.results %}
+<tr>
+<td>{{ result.keyword }}</td>
+<td>
+<span class="badge verdict-{{ result.verdict }}">
+{% if result.verdict == 'hot' %}HOT{% elif result.verdict == 'cold' %}COLD{% else %}{{ result.verdict.upper() }}{% endif %}
+</span>
+</td>
+<td>{{ result.kd or '-' }}</td>
+<td>{{ result.reason or '-' }}</td>
+<td>{{ result.judged_at }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+</section>
+{% endif %}
+</div>
+
+<style>
+.batch-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-row label {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.batch-candidates {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.score-bar {
+    width: 100px;
+    height: 20px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+.score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%);
+    transition: width 0.3s ease;
+}
+
+.score-value {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.verdict-hot { background: #ef4444; color: white; }
+.verdict-cold { background: #6b7280; color: white; }
+.verdict-maybe { background: #f59e0b; color: white; }
+</style>
+
+{% endblock %}

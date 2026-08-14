@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}通知通道{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">关键词发现</p><h1>通知通道</h1><p class="muted">关键词新增摘要、异常告警和 HOT 判定会推送到这里。配置字段用 Fernet 加密，页面不回显明文。</p></div><div class="actions"><a class="button" href="/keywords">返回候选</a></div></div>
+<div class="grid-two">
+<section class="panel form-card"><h2>添加通知通道</h2><form method="post" action="/notify-channels" class="stack">
+  <label>通道名称<input name="name" required placeholder="我的微信 / 报警群"></label>
+  <label>通道类型<select name="channel_type" id="notify-type-select">
+    {% for value in NotifyChannelType %}<option value="{{ value.value }}">{{ notify_channel_type_labels[value] }}</option>{% endfor %}
+  </select></label>
+  {% for ctype, fields in config_fields.items() %}
+  <div class="notify-fields" data-notify-type="{{ ctype.value }}">
+    {% for field, hint in fields.items() %}
+    <label>{{ hint }}<input type="password" name="{{ field }}" autocomplete="off" placeholder="******" data-notify-field="{{ field }}"></label>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <button class="primary">加密保存</button>
+</form></section>
+<section class="panel"><div class="panel-head"><h2>已配置通道</h2></div><div class="pool-list">
+  {% for channel in channels %}
+  <article class="pool-card">
+    <div class="pool-title"><strong>{{ channel.name }}</strong><span class="badge {{ 'channel-active' if channel.enabled else 'channel-inactive' }}">{{ notify_channel_type_labels[channel.channel_type] }} · {{ '启用' if channel.enabled else '停用' }}</span></div>
+    {% if channel.last_error %}<div class="alert danger">{{ channel.last_error }}</div>{% endif %}
+    <form method="post" action="/notify-channels/{{ channel.id }}/update" class="stack">
+      <label>通道名称<input name="name" value="{{ channel.name }}" required></label>
+      {% for field, hint in config_fields[channel.channel_type].items() %}
+      <label>{{ hint }}<input type="password" name="{{ field }}" autocomplete="off" placeholder="******（留空不修改）"></label>
+      {% endfor %}
+      <button>保存</button>
+    </form>
+    <div class="actions">
+      <form method="post" action="/notify-channels/{{ channel.id }}/test"><button class="primary">测试推送</button></form>
+      <form method="post" action="/notify-channels/{{ channel.id }}/toggle"><button>{{ '停用' if channel.enabled else '启用' }}</button></form>
+      <form method="post" action="/notify-channels/{{ channel.id }}/delete" onsubmit="return confirm('确定删除这个通知通道？')"><button class="danger-link">删除</button></form>
+    </div>
+  </article>
+  {% else %}<div class="empty">尚未配置通知通道。</div>{% endfor %}
+</div></section>
+</div>
+<script>
+(function () {
+  var sel = document.getElementById('notify-type-select');
+  if (!sel) return;
+  function refresh() {
+    document.querySelectorAll('.notify-fields').forEach(function (group) {
+      group.style.display = group.dataset.notifyType === sel.value ? '' : 'none';
+    });
+  }
+  sel.addEventListener('change', refresh);
+  refresh();
+})();
+</script>
+{% endblock %}

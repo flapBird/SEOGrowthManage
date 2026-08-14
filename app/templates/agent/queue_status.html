@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}队列状态{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Agent 管理</p><h1>队列状态</h1>
+<p class="muted">
+{% if agent_enabled %}
+当前队列中待处理：{{ pending_count }} 个候选词
+{% else %}
+Agent 集成未启用
+{% endif %}
+</p></div>
+<div class="actions">
+<a class="button" href="/agent">返回仪表盘</a>
+</div></div>
+
+{% if not agent_enabled %}
+<div class="alert warning">
+<p>⚠️ Agent 集成未启用，请在 .env 中设置 agent_integration_enabled=true</p>
+</div>
+{% endif %}
+
+<div class="grid-two">
+<section class="panel">
+<div class="panel-head"><h2>队列概览</h2></div>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-number">{{ pending_files }}</div>
+<div class="stat-label">待处理批次文件</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">{{ pending_count }}</div>
+<div class="stat-label">待处理候选词</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">{{ done_files }}</div>
+<div class="stat-label">已完成批次</div>
+</div>
+</div>
+</section>
+
+<section class="panel">
+<div class="panel-head"><h2>待处理候选词</h2></div>
+{% if pending_keywords %}
+<div class="keyword-list">
+{% for kw in pending_keywords %}
+<div class="keyword-item">
+<span class="keyword">{{ kw.keyword }}</span>
+<span class="meta">批次: {{ kw.batch_id }}</span>
+<span class="meta">评分: {{ kw.score }}</span>
+</div>
+{% endfor %}
+{% if pending_count > 10 %}
+<p class="muted">还有 {{ pending_count - 10 }} 个候选词未显示...</p>
+{% endif %}
+</div>
+{% else %}
+<div class="empty">暂无待处理候选词</div>
+{% endif %}
+</section>
+</div>
+
+{% endblock %}

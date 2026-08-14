@@ -23,6 +23,7 @@ from ..models import (
     now_local,
 )
 from .normalizer import normalize_game_title
+from .notify import notify
 from .serpapi import SerpApiClient, SerpApiUnavailable
 from .sources import SourceEntry, fetch_source_entries
 
@@ -108,16 +109,28 @@ def ingest_entries(db: Session, source: KeywordSource, entries: list[SourceEntry
     return discovered, new_candidates
 
 
-async def run_source(source_id: int) -> None:
+async def run_source(source_id: int) -> dict:
+    """抓取单个来源。返回结果摘要供上层聚合成一条通知（避免逐来源推送刷屏）。"""
     with SessionLocal() as db:
         source = db.get(KeywordSource, source_id)
         if source is None or not source.enabled or source.source_type == KeywordSourceType.manual:
-            return
+            return {}
+        source_name = source.name
         run = KeywordFetchRun(source_id=source.id, status=KeywordFetchStatus.running)
         db.add(run)
         db.commit()
         try:
             entries = await fetch_source_entries(source)
+            if not entries:
+                # 抓取未抛错但结果为空：大概率是被 WAF 拦截或网络异常导致返回了空文档。
+                # 绝不能把它当作“站点真的没有内容”——那样会污染基线。保留 last_fetched_at 不动，
+                # 仅记录一条失败运行，下次抓取恢复正常即可（移植脚本“空结果不覆盖基线”的防御意图）。
+                source.last_error = "抓取结果为空，疑似被拦截或返回空文档，未更新基线"
+                run.status = KeywordFetchStatus.failed
+                run.message = source.last_error
+                run.finished_at = now_local()
+                db.commit()
+                return {"source": source_name, "status": "failed", "message": source.last_error}
             discovered, new_candidates = ingest_entries(db, source, entries)
             source.last_fetched_at = now_local()
             source.last_error = None
@@ -125,12 +138,79 @@ async def run_source(source_id: int) -> None:
             run.discovered_count = discovered
             run.new_candidate_count = new_candidates
             run.message = f"读取 {len(entries)} 项，新来源项 {discovered}，新候选 {new_candidates}"
+            run.finished_at = now_local()
+            db.commit()
+            new_keywords = _recent_new_keywords(db, source.id, limit=15)
+            return {
+                "source": source_name,
+                "status": "success",
+                "discovered": discovered,
+                "new_candidates": new_candidates,
+                "total": len(entries),
+                "new_keywords": new_keywords,
+            }
         except Exception as exc:
             source.last_error = f"{type(exc).__name__}: {exc}"[:4000]
             run.status = KeywordFetchStatus.failed
             run.message = source.last_error
-        run.finished_at = now_local()
-        db.commit()
+            run.finished_at = now_local()
+            db.commit()
+            return {"source": source_name, "status": "failed", "message": source.last_error}
+
+
+def _recent_new_keywords(db: Session, source_id: int, limit: int = 15) -> list[str]:
+    """取某来源本次新增的候选词（按信号快照时间倒序），用于通知摘要。"""
+    rows = db.scalars(
+        select(KeywordCandidate.keyword, KeywordSignalSnapshot.captured_at)
+        .join(KeywordSignalSnapshot, KeywordSignalSnapshot.candidate_id == KeywordCandidate.id)
+        .where(
+            KeywordSignalSnapshot.source_id == source_id,
+            KeywordSignalSnapshot.signal_type == "source_discovery",
+        )
+        .order_by(KeywordSignalSnapshot.captured_at.desc())
+        .limit(limit)
+    ).all()
+    return [row[0] for row in rows]
+
+
+def _build_fetch_summary(results: list[dict]) -> tuple[str | None, str]:
+    """把本轮各来源的抓取结果聚合成 markdown 摘要。
+    返回 (标题, 正文)；没有内容值得推送时标题为 None。"""
+    settings = get_settings()
+    successes = [r for r in results if r.get("status") == "success"]
+    failures = [r for r in results if r.get("status") == "failed"]
+    total_new = sum(r.get("new_candidates", 0) for r in successes)
+
+    anomalies: list[str] = []
+    for r in successes:
+        total = r.get("total", 0)
+        new = r.get("discovered", 0)
+        if total > 0 and new / total > settings.keyword_anomaly_ratio:
+            anomalies.append(
+                f"- ⚠️ {r['source']}：新增 {new} / 共 {total}（占比 {new/total:.0%}），"
+                f"比例异常高，可能是站点改版或抓取逻辑问题，不一定是真新词"
+            )
+    for r in failures:
+        anomalies.append(f"- ⚠️ {r['source']}：{r.get('message', '抓取失败')}")
+
+    if total_new == 0 and not anomalies:
+        return None, ""
+
+    lines = []
+    for r in successes:
+        if r.get("new_candidates", 0) > 0:
+            sample = "、".join(r["new_keywords"][:8])
+            more = f"等 {r['new_candidates']} 个" if r["new_candidates"] > 8 else ""
+            lines.append(f"**{r['source']}** 新增 {r['new_candidates']} 个候选：{sample}{more}")
+    if anomalies:
+        lines.append("")
+        lines.append("**异常提醒（请先核实）：**")
+        lines.extend(anomalies)
+
+    title = f"关键词发现：本轮新增 {total_new} 个候选"
+    if anomalies:
+        title = "⚠️ " + title + "（有异常）"
+    return title, "\n".join(lines)
 
 
 async def fetch_due_sources() -> None:
@@ -144,8 +224,16 @@ async def fetch_due_sources() -> None:
             source.id for source in sources
             if source.last_fetched_at is None or source.last_fetched_at + timedelta(minutes=source.interval_minutes) <= now
         ]
+    if not due_ids:
+        return
+    results: list[dict] = []
     for source_id in due_ids:
-        await run_source(source_id)
+        results.append(await run_source(source_id))
+    # 本轮全部来源抓完后聚合发一条通知（而非逐来源推送），避免刷屏。
+    title, body = _build_fetch_summary(results)
+    if title:
+        with SessionLocal() as db:
+            await notify(db, title, body)
 
 
 def _add_serp_signal(db: Session, candidate: KeywordCandidate, signal_type: str, value: float | None, payload, pool_id: int) -> None:
@@ -174,10 +262,12 @@ def _parse_view_count(value) -> int:
         return 0
 
 
-async def enrich_candidate(db: Session, candidate: KeywordCandidate, client: SerpApiClient | None = None) -> int:
+async def enrich_candidate(db: Session, candidate: KeywordCandidate, client: SerpApiClient | None = None) -> tuple[int, bool]:
+    """对一个候选跑四路 SerpAPI 信号并评分。返回 (本次 SerpAPI 调用次数, 是否在本次新晋为 HOT)。"""
     client = client or SerpApiClient(db)
     keyword = candidate.keyword
     calls = 0
+    prior_status = candidate.status
     results: dict[str, dict] = {}
     requests = (
         ("autocomplete", {"engine": "google_autocomplete", "q": keyword, "hl": candidate.language[:2], "gl": candidate.country.lower()}),
@@ -254,11 +344,14 @@ async def enrich_candidate(db: Session, candidate: KeywordCandidate, client: Ser
     candidate.confidence_score = round(confidence_score, 1)
     candidate.total_score = round(total, 1)
     candidate.last_enriched_at = now_local()
+    became_hot = False
     if total >= 70 and family_count >= 3:
         candidate.status = KeywordCandidateStatus.hot
         candidate.next_review_at = None
         candidate.ignored_until = None
         candidate.decision_reason = "热度、新鲜度和搜索需求达到 HOT 阈值"
+        # 只在状态从非 HOT 翻转为 HOT 的那一刻通知，避免每次复查都重复推送同一个 HOT 候选。
+        became_hot = prior_status != KeywordCandidateStatus.hot
     elif total >= 35:
         candidate.status = KeywordCandidateStatus.hold
         delay = 24 if total >= 55 else 72 if total >= 42 else 168
@@ -271,7 +364,7 @@ async def enrich_candidate(db: Session, candidate: KeywordCandidate, client: Ser
         candidate.ignored_until = now_local() + timedelta(days=get_settings().keyword_ignore_cooldown_days)
         candidate.decision_reason = "当前搜索需求或热度不足，进入冷却历史库"
     db.commit()
-    return calls
+    return calls, became_hot
 
 
 async def enrich_due_candidates() -> None:
@@ -300,9 +393,12 @@ async def enrich_due_candidates() -> None:
             .limit(batch_size)
         ).all()
         client = SerpApiClient(db)
+        new_hot: list[str] = []
         for candidate in candidates:
             try:
-                await enrich_candidate(db, candidate, client)
+                _, became_hot = await enrich_candidate(db, candidate, client)
+                if became_hot:
+                    new_hot.append(f"{candidate.keyword}（{candidate.total_score} 分）")
             except SerpApiUnavailable as exc:
                 candidate.decision_reason = f"等待可用 SerpAPI 额度池: {exc}"
                 candidate.next_review_at = now + timedelta(hours=1)
@@ -313,3 +409,9 @@ async def enrich_due_candidates() -> None:
                 candidate.next_review_at = now + timedelta(hours=1)
                 candidate.status = KeywordCandidateStatus.hold
                 db.commit()
+    # 本轮全部候选分析完后，把新晋 HOT 聚合成一条通知。
+    if new_hot:
+        title = f"关键词发现：本轮新晋 HOT {len(new_hot)} 个"
+        body = "以下候选总分达到 HOT 阈值，值得优先跟进：\n\n- " + "\n- ".join(new_hot)
+        with SessionLocal() as db:
+            await notify(db, title, body)

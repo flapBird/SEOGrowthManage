@@ -83,6 +83,12 @@ class KeywordFetchStatus(str, enum.Enum):
     failed = "failed"
 
 
+class NotifyChannelType(str, enum.Enum):
+    serverchan = "serverchan"
+    wecom_bot = "wecom_bot"
+    email = "email"
+
+
 class AdminSession(Base):
     __tablename__ = "admin_sessions"
 
@@ -325,6 +331,11 @@ class KeywordCandidate(Base):
     ignored_until: Mapped[datetime | None] = mapped_column(DateTime, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+    # 远程 Claude Code Agent 的智能判断结果，与上面的规则判定分开存储，便于对比两者分歧。
+    agent_verdict: Mapped[str | None] = mapped_column(String(20))       # hot / hold / ignore
+    agent_kd: Mapped[int | None] = mapped_column(Integer)               # Agent 查到的关键词难度
+    agent_reason: Mapped[str | None] = mapped_column(Text)              # Agent 的推理理由
+    agent_judged_at: Mapped[datetime | None] = mapped_column(DateTime)  # 最近一次被 Agent 判断的时间
 
     signals: Mapped[list[KeywordSignalSnapshot]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan", order_by="KeywordSignalSnapshot.captured_at.desc()"
@@ -376,5 +387,38 @@ class SerpApiPool(Base):
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
     consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
     last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+
+class NotifyChannel(Base):
+    __tablename__ = "notify_channels"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), index=True)
+    channel_type: Mapped[NotifyChannelType] = mapped_column(Enum(NotifyChannelType), index=True)
+    # 整段配置用 Fernet 加密存储（sendkey / webhook / SMTP 授权码等敏感字段），与 ChannelCredential 一致。
+    config_json: Mapped[str] = mapped_column(Text)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
+    consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+
+class AgentBatch(Base):
+    """远程 Agent 交接批次的审计跟踪：容器写任务文件 → Agent 处理 → 容器回收结果。"""
+    __tablename__ = "agent_batches"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    batch_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    dispatched_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    collected_at: Mapped[datetime | None] = mapped_column(DateTime)
+    candidate_count: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[str] = mapped_column(String(20), default="dispatched")  # dispatched / collected / failed
+    in_path: Mapped[str | None] = mapped_column(String(512))
+    out_path: Mapped[str | None] = mapped_column(String(512))
+    message: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)

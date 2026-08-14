@@ -14,7 +14,9 @@ from sqlalchemy.orm import Session, joinedload
 from .config import BASE_DIR, get_settings
 from .database import get_db
 from .channel_blacklist import available_channels, is_channel_blacklisted, matching_blacklist_entry, normalize_blacklist_domain
+from .keyword_discovery.agent_queue import _ensure_dirs, _queue_root
 from .models import (
+    AgentBatch,
     AutomationTask,
     BacklinkRecord,
     Channel,
@@ -32,6 +34,7 @@ from .models import (
     KeywordCandidateStatus,
     KeywordFetchStatus,
     KeywordSourceType,
+    NotifyChannelType,
     TargetSite,
     TaskStatus,
     now_local,
@@ -110,6 +113,7 @@ templates.env.globals.update(
     KeywordCandidateStatus=KeywordCandidateStatus,
     KeywordFetchStatus=KeywordFetchStatus,
     KeywordSourceType=KeywordSourceType,
+    NotifyChannelType=NotifyChannelType,
     keyword_status_labels={
         KeywordCandidateStatus.discovered: "待分析",
         KeywordCandidateStatus.hot: "HOT",
@@ -125,6 +129,11 @@ templates.env.globals.update(
         KeywordFetchStatus.running: "运行中",
         KeywordFetchStatus.success: "成功",
         KeywordFetchStatus.failed: "失败",
+    },
+    notify_channel_type_labels={
+        NotifyChannelType.serverchan: "Server酱微信",
+        NotifyChannelType.wecom_bot: "企业微信群机器人",
+        NotifyChannelType.email: "邮件 SMTP",
     },
 )
 
@@ -995,3 +1004,144 @@ async def task_run_now(task_id: int, db: Db):
     db.commit()
     await execute_task(task.id)
     return redirect(f"/tasks/{task_id}", "任务已执行，请查看最新状态与日志")
+
+
+# Agent Management Routes
+@router.get("/agent")
+def agent_dashboard(request: Request, db: Db):
+    """Agent 仪表盘：显示队列状态、批次历史和操作按钮"""
+    from datetime import datetime, timedelta
+
+    settings = get_settings()
+
+    # 获取最近30天的批次记录
+    since = now_local() - timedelta(days=30)
+    batches = db.scalars(
+        select(AgentBatch)
+        .where(AgentBatch.created_at >= since)
+        .order_by(AgentBatch.created_at.desc())
+        .limit(20)
+    ).all()
+
+    # 计算队列状态
+    dirs = _ensure_dirs()
+    pending_files = list(dirs["in_pending"].glob("*.json"))
+    done_files = list(dirs["out_done"].glob("*.json"))
+
+    # 统计各状态数量
+    stats = {
+        "total": len(batches),
+        "dispatched": sum(1 for b in batches if b.status == "dispatched"),
+        "collected": sum(1 for b in batches if b.status == "collected"),
+        "pending_files": len(pending_files),
+        "done_files": len(done_files),
+    }
+
+    # 获取最新的活动时间
+    last_activity = None
+    if batches:
+        last_activity = max(b.created_at for b in batches)
+
+    return render(request, "agent/dashboard.html", {
+        "batches": batches,
+        "stats": stats,
+        "last_activity": last_activity,
+        "agent_enabled": settings.agent_integration_enabled,
+    })
+
+
+@router.post("/agent/dispatch")
+async def agent_dispatch_manual(request: Request, db: Db):
+    """手动触发一次 Agent 分发"""
+    settings = get_settings()
+    if not settings.agent_integration_enabled:
+        raise HTTPException(422, "Agent 集成未启用")
+
+    try:
+        await dispatch_due_to_agent()
+        return redirect("/agent", "已触发 Agent 分发，请查看队列状态")
+    except Exception as e:
+        raise HTTPException(500, f"分发失败: {str(e)}")
+
+
+@router.post("/agent/collect")
+async def agent_collect_manual(request: Request, db: Db):
+    """手动触发一次 Agent 结果收集"""
+    settings = get_settings()
+    if not settings.agent_integration_enabled:
+        raise HTTPException(422, "Agent 集成未启用")
+
+    try:
+        await collect_agent_results()
+        return redirect("/agent", "已触发 Agent 结果收集，请查看更新")
+    except Exception as e:
+        raise HTTPException(500, f"收集失败: {str(e)}")
+
+
+@router.get("/agent/batches/{batch_id}")
+def agent_batch_detail(request: Request, batch_id: str, db: Db):
+    """批次详情页面"""
+    batch = get_or_404(db, AgentBatch, batch_id=batch_id)
+
+    # 读取批次文件内容
+    dirs = _ensure_dirs()
+    in_path = (BASE_DIR.parent / batch.in_path) if batch.in_path else None
+    out_path = (BASE_DIR.parent / batch.out_path) if batch.out_path else None
+
+    batch_data = None
+    result_data = None
+
+    if in_path and in_path.exists():
+        import json
+        try:
+            batch_data = json.loads(in_path.read_text(encoding="utf-8"))
+        except:
+            batch_data = {"error": "无法读取批次文件"}
+
+    if out_path and out_path.exists():
+        import json
+        try:
+            result_data = json.loads(out_path.read_text(encoding="utf-8"))
+        except:
+            result_data = {"error": "无法读取结果文件"}
+
+    return render(request, "agent/batch_detail.html", {
+        "batch": batch,
+        "batch_data": batch_data,
+        "result_data": result_data,
+    })
+
+
+@router.get("/agent/queue")
+def agent_queue_status(request: Request, db: Db):
+    """队列状态页面"""
+    settings = get_settings()
+
+    # 获取队列文件
+    dirs = _ensure_dirs()
+    pending_files = sorted(dirs["in_pending"].glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+    done_files = sorted(dirs["out_done"].glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True)
+
+    pending_count = 0
+    pending_keywords = []
+    for f in pending_files:
+        import json
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+            pending_count += len(data.get("candidates", []))
+            for candidate in data.get("candidates", []):
+                pending_keywords.append({
+                    "keyword": candidate.get("keyword"),
+                    "batch_id": data.get("batch_id"),
+                    "score": candidate.get("scores", {}).get("total"),
+                })
+        except:
+            pass
+
+    return render(request, "agent/queue_status.html", {
+        "pending_files": len(pending_files),
+        "done_files": len(done_files),
+        "pending_count": pending_count,
+        "pending_keywords": pending_keywords[:10],  # 只显示前10个
+        "agent_enabled": settings.agent_integration_enabled,
+    })

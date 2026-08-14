@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Agent 仪表盘{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">Agent 管理</p><h1>Agent 仪表盘</h1>
+<p class="muted">
+{% if agent_enabled %}
+Agent 集成已启用 · 最后活动：{{ last_activity.strftime('%Y-%m-%d %H:%M') if last_activity else '无' }}
+{% else %}
+Agent 集成未启用 · 请在 .env 中配置 agent_integration_enabled=true
+{% endif %}
+</p></div>
+<div class="actions">
+{% if agent_enabled %}
+<a class="button" href="/agent/queue">队列状态</a>
+<form method="post" action="/agent/dispatch" style="display: inline;"><button class="primary">立即分发</button></form>
+<form method="post" action="/agent/collect" style="display: inline;"><button class="primary">立即收集</button></form>
+{% endif %}
+</div></div>
+
+{% if not agent_enabled %}
+<div class="alert warning">
+<p>⚠️ Agent 集成需要启用：</p>
+<ol>
+<li>确保宿主机有 cron 服务运行</li>
+<li>创建 data/agent_queue 目录并设置合适的权限</li>
+<li>在 .env 中设置 <code>agent_integration_enabled=true</code></li>
+<li>配置宿主机定时任务（参考文档）</li>
+</ol>
+</div>
+{% endif %}
+
+<div class="grid-two">
+<section class="panel">
+<div class="panel-head"><h2>队列统计</h2></div>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-number">{{ stats.pending_files }}</div>
+<div class="stat-label">待分发批次</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">{{ stats.total }}</div>
+<div class="stat-label">总批次数</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">{{ stats.dispatched }}</div>
+<div class="stat-label">已分发</div>
+</div>
+<div class="stat-card">
+<div class="stat-number">{{ stats.collected }}</div>
+<div class="stat-label">已回收</div>
+</div>
+</div>
+</section>
+
+<section class="panel">
+<div class="panel-head"><h2>最近批次</h2></div>
+<div class="table-wrapper">
+<table class="data-table">
+<thead>
+<tr>
+<th>批次ID</th>
+<th>创建时间</th>
+<th>候选数</th>
+<th>状态</th>
+<th>操作</th>
+</tr>
+</thead>
+<tbody>
+{% for batch in batches %}
+<tr>
+<td><a href="/agent/batches/{{ batch.batch_id }}">{{ batch.batch_id }}</a></td>
+<td>{{ batch.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+<td>{{ batch.candidate_count }}</td>
+<td>
+<span class="badge {{ 'batch-' + batch.status }}">
+{% if batch.status == 'dispatched' %}已分发{% elif batch.status == 'collected' %}已回收{% else %}{{ batch.status }}{% endif %}
+</span>
+</td>
+<td>
+<a href="/agent/batches/{{ batch.batch_id }}" class="button small">查看详情</a>
+</td>
+</tr>
+{% else %}
+<tr>
+<td colspan="5" class="empty">暂无批次记录</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</section>
+</div>
+
+{% endblock %}

@@ -12,16 +12,16 @@ from sqlalchemy.orm import Session, joinedload
 from .config import get_settings
 from .database import get_db
 from .keyword_discovery.pipeline import enrich_candidate, ingest_entries, run_source
+from .keyword_discovery.notify import notify, notify_one
 from .keyword_discovery.serpapi import SerpApiClient
 from .keyword_discovery.sources import SourceEntry
-from .models import KeywordCandidate, KeywordCandidateStatus, KeywordFetchRun, KeywordSource, KeywordSourceType, SerpApiPool
+from .models import KeywordCandidate, KeywordCandidateStatus, KeywordFetchRun, KeywordSource, KeywordSourceType, NotifyChannel, NotifyChannelType, SerpApiPool
 from .security import CredentialCipher, require_auth
 from .web import get_or_404, redirect, render
 
 
 router = APIRouter(dependencies=[Depends(require_auth)])
 Db = Annotated[Session, Depends(get_db)]
-RESTRICTED_AUTOMATION_DOMAINS = {"crazygames.com", "poki.com"}
 
 
 @router.get("/keywords", response_class=HTMLResponse)
@@ -59,7 +59,7 @@ def keyword_status(candidate_id: int, db: Db, status: Annotated[str, Form()], re
 async def keyword_enrich(candidate_id: int, db: Db):
     candidate = get_or_404(db, KeywordCandidate, candidate_id)
     try:
-        calls = await enrich_candidate(db, candidate)
+        calls, _became_hot = await enrich_candidate(db, candidate)
         return redirect(f"/keywords/{candidate_id}", f"信号分析完成，使用 {calls} 次 SerpAPI 查询")
     except Exception as exc:
         return redirect(f"/keywords/{candidate_id}", f"分析失败: {type(exc).__name__}: {exc}")
@@ -76,9 +76,6 @@ def _validate_source_url(url: str) -> None:
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise HTTPException(422, "来源 URL 必须是有效的 HTTP/HTTPS 地址")
-    host = parsed.hostname.lower()
-    if any(host == domain or host.endswith(f".{domain}") for domain in RESTRICTED_AUTOMATION_DOMAINS):
-        raise HTTPException(422, "该平台当前公开条款禁止自动化采集，请使用人工导入或先取得书面授权")
 
 
 @router.post("/keyword-sources")
@@ -186,4 +183,117 @@ def pool_delete(pool_id: int, db: Db):
 async def pools_refresh(db: Db):
     await SerpApiClient(db).refresh_all()
     return redirect("/serpapi-pools", "额度信息同步完成；Account API 查询不消耗搜索额度")
+
+
+# ---------------------------------------------------------------------------
+# 通知通道（关键词发现的新增/异常/HOT 推送）
+# ---------------------------------------------------------------------------
+
+def _notify_config_fields(channel_type: NotifyChannelType) -> dict[str, str]:
+    """每种通道类型对应的配置字段表（键 -> 字段说明），仅用于模板渲染。"""
+    if channel_type == NotifyChannelType.serverchan:
+        return {"sendkey": "Server酱 SendKey（SCTxxxxx）"}
+    if channel_type == NotifyChannelType.wecom_bot:
+        return {"webhook": "企业微信群机器人 Webhook URL"}
+    return {  # email
+        "smtp_host": "SMTP 服务器（如 smtp.qq.com）",
+        "smtp_port": "SMTP 端口（SSL 通常 465）",
+        "smtp_user": "邮箱账号",
+        "smtp_password": "邮箱授权码（非登录密码）",
+        "mail_from": "发件地址",
+        "mail_to": "收件地址",
+    }
+
+
+def _build_notify_config(channel_type: NotifyChannelType, form_fields: dict[str, str]) -> dict[str, str]:
+    """按通道类型从表单字段组装配置 dict，并做必填校验。"""
+    expected = _notify_config_fields(channel_type)
+    config: dict[str, str] = {}
+    missing: list[str] = []
+    for field in expected:
+        value = (form_fields.get(field) or "").strip()
+        if not value:
+            missing.append(field)
+        config[field] = value
+    if missing:
+        raise HTTPException(422, f"缺少通知配置字段: {', '.join(missing)}")
+    return config
+
+
+@router.get("/notify-channels", response_class=HTMLResponse)
+def notify_channel_list(request: Request, db: Db):
+    channels = db.scalars(select(NotifyChannel).order_by(NotifyChannel.channel_type, NotifyChannel.name)).all()
+    return render(
+        request,
+        "keywords/notify.html",
+        channels=channels,
+        config_fields={t: _notify_config_fields(t) for t in NotifyChannelType},
+    )
+
+
+async def _form_to_dict(request: Request) -> dict[str, str]:
+    """把表单全部字段收集成 dict（配置字段随通道类型变化，无法在签名里静态声明）。"""
+    return {key: (value if isinstance(value, str) else "") for key, value in (await request.form()).items()}
+
+
+@router.post("/notify-channels")
+async def notify_channel_create(
+    db: Db, name: Annotated[str, Form()], channel_type: Annotated[str, Form()], request: Request,
+):
+    try:
+        notify_type = NotifyChannelType(channel_type)
+    except ValueError as exc:
+        raise HTTPException(422, "不支持的通知通道类型") from exc
+    form_fields = await _form_to_dict(request)
+    config = _build_notify_config(notify_type, form_fields)
+    db.add(NotifyChannel(
+        name=name.strip(),
+        channel_type=notify_type,
+        config_json=CredentialCipher().encrypt_json(config),
+        enabled=True,
+    ))
+    db.commit()
+    return redirect("/notify-channels", "通知通道已加密保存")
+
+
+@router.post("/notify-channels/{channel_id}/update")
+async def notify_channel_update(
+    channel_id: int, db: Db, name: Annotated[str, Form()], request: Request,
+):
+    channel = get_or_404(db, NotifyChannel, channel_id)
+    channel.name = name.strip()
+    # 任一配置字段非空即视为要更新；全部留空则保留原密文。
+    form_fields = await _form_to_dict(request)
+    expected = _notify_config_fields(channel.channel_type)
+    provided = {field: (form_fields.get(field) or "").strip() for field in expected}
+    if any(provided.values()):
+        config = _build_notify_config(channel.channel_type, {k: v for k, v in provided.items() if v})
+        channel.config_json = CredentialCipher().encrypt_json(config)
+        channel.last_error = None
+    db.commit()
+    return redirect("/notify-channels", "通知通道已更新")
+
+
+@router.post("/notify-channels/{channel_id}/toggle")
+def notify_channel_toggle(channel_id: int, db: Db):
+    channel = get_or_404(db, NotifyChannel, channel_id)
+    channel.enabled = not channel.enabled
+    db.commit()
+    return redirect("/notify-channels", "通知通道状态已更新")
+
+
+@router.post("/notify-channels/{channel_id}/delete")
+def notify_channel_delete(channel_id: int, db: Db):
+    db.delete(get_or_404(db, NotifyChannel, channel_id))
+    db.commit()
+    return redirect("/notify-channels", "通知通道已删除")
+
+
+@router.post("/notify-channels/{channel_id}/test")
+async def notify_channel_test(channel_id: int, db: Db):
+    channel = get_or_404(db, NotifyChannel, channel_id)
+    ok = await notify_one(channel, "关键词发现测试通知", "这是一条来自 SEO 工作台的测试消息，收到说明通道配置正确。")
+    db.commit()
+    return redirect("/notify-channels", "测试通知已发出" if ok else f"测试推送失败：{channel.last_error or '未知错误'}")
+
 

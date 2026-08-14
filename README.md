@@ -54,13 +54,15 @@
 ### 6. 关键词发现与复查
 
 - `app/keyword_discovery/` 是与外链发布解耦的独立流水线，共享管理员鉴权、SQLite、Fernet 和 APScheduler。
-- 来源支持标准 Sitemap、Sitemap Index、gzip Sitemap、RSS 及人工逐行导入。每个来源必须确认条款或授权允许自动访问；系统明确拒绝自动添加 CrazyGames/Poki 域名，未获书面授权时应人工导入。
-- `KeywordSourceItem` 保存不可变来源条目并通过指纹比较发现新增；`KeywordCandidate` 保存标准化、去重后的候选；`KeywordSignalSnapshot` 保存每次搜索信号快照。
+- 来源支持标准 Sitemap、Sitemap Index（递归展开两层）、gzip Sitemap、RSS 及人工逐行导入。下载带指数退避重试，子 sitemap 并发抓取（受并发数与请求间隔限流），默认用浏览器 UA 以绕过 WAF 对脚本 UA 的误伤。每个来源必须确认条款或授权允许自动访问，并尊重对方的 Crawl-delay。
+- `KeywordSourceItem` 保存不可变来源条目并通过指纹比较发现新增；`KeywordCandidate` 保存标准化、去重后的候选；`KeywordSignalSnapshot` 保存每次搜索信号快照。抓取返回空结果时不更新基线，避免误判全量”新增”。
 - 清洗会去掉 gameplay、walkthrough、长数字 ID 等噪声，但保留原始标题和 URL 便于追溯。
 - 每个候选按 Google Autocomplete、Google Trends、YouTube 搜索和 Google 竞争结果四类 SerpAPI 信号评分。YouTube 快照重复采集后会计算近似播放增速。
 - 状态分为 `HOT`、`HOLD`、`IGNORE` 和待分析；HOLD 按分数在 24 小时、72 小时或 7 天后复查，IGNORE 冷却 30 天后可重新激活。
 - `SerpApiPool` 支持多个合法持有的 API Key，Key 使用 Fernet 加密。系统通过免费 Account API 同步余额，按优先级、剩余额度和最近使用时间选池，遇到 429 自动切换。
 - `KEYWORD_SERPAPI_DAILY_BUDGET` 是应用自己的每日安全预算，默认 50 次；一个候选完整分析约使用 4 次查询，因此默认每天最多自动完整分析约 12 个候选。
+- **远程 Agent 智能判断**：可选的远程 AI 驱动二次筛选，通过本地启发式过滤减少 API 成本，批量送至 Claude Code Agent 做综合判断，支持 HOT/COLD 分类和 KD 预估，详见 [agent-integration.md](docs/agent-integration.md)。
+- 通知能力：`NotifyChannel` 支持 Server酱微信、企业微信群机器人和 SMTP 邮件三种通道，配置用 Fernet 加密入库，页面不回显明文。每轮抓取结束后聚合一条新增摘要（包含关键字词样）；当某来源新增占比超过 `KEYWORD_ANOMALY_RATIO`（默认 0.3）或抓取失败时附带异常告警；候选在分析中新晋 HOT 或经 Agent 判定为 HOT 时也会聚合推送。
 
 ## 核心目录与职责
 
@@ -81,13 +83,20 @@
 │   │   └── scheduler.py        # APScheduler 周期调度
 │   ├── keyword_discovery/
 │   │   ├── normalizer.py       # 游戏名清洗、语言和泛词过滤
-│   │   ├── sources.py          # Sitemap/RSS 下载和安全解析
+│   │   ├── sources.py          # Sitemap/RSS 下载（重试退避、并发、递归 index）和安全解析
 │   │   ├── serpapi.py          # 加密多额度池、余额同步和故障切换
-│   │   └── pipeline.py         # 历史比对、信号聚合、评分和自动复查
-│   ├── keyword_web.py          # 候选、来源、日志和额度池页面
+│   │   ├── pipeline.py         # 历史比对、信号聚合、评分、自动复查和通知触发
+│   │   ├── notify.py           # 通知通道分发（Server酱 / 企业微信 / 邮件）
+│   │   ├── agent_filter.py     # 本地启发式过滤，剔除不值得送 Agent 的候选
+│   │   ├── agent_queue.py      # 文件队列管理，批量送出和回收 Agent 判断结果
+│   │   └── keyword_web.py      # 候选、来源、日志、额度池和通知通道页面
 │   ├── templates/              # Jinja2 页面及 htmx 局部模板
+│   │   └── agent/              # Agent 管理页面模板
 │   └── static/                 # 页面样式与批量网站选择交互
+│       └── agent.css           # Agent 管理界面样式
 ├── data/                       # SQLite 持久化目录（Docker volume）
+├── docs/                       # 文档目录
+│   └── agent-integration.md    # 远程 Agent 集成指南
 ├── tests/                      # 鉴权、CRUD、加密、查询及任务状态机测试
 ├── Dockerfile
 └── docker-compose.yml
@@ -133,10 +142,11 @@ SQLite 文件保存在宿主机 `./data/backlink_manager.db`。备份时建议�
 ## 关键词发现快速使用
 
 1. 进入“关键词发现”→“SerpAPI 额度池”，添加一个或多个本人/团队合法持有的 API Key，再点击“同步全部额度”。页面只展示余额，永不回显明文 Key。
-2. 进入“来源与日志”，添加条款允许自动访问的 Sitemap 或 Google Trends RSS，选择语言、国家和抓取间隔。Sitemap 只用于发现新增 URL，不被当作排行榜热度。
-3. 对禁止自动抓取或无法确认条款的平台，把你人工查看到的榜单游戏名复制到“人工导入候选”，每行一个。
-4. APScheduler 会定期比较来源历史并生成去重候选。待分析候选按照每日额度预算查询 Autocomplete、Trends、YouTube 和 Google SERP。
-5. 在候选列表查看 HOT/HOLD/IGNORE；进入详情可看分项分数、信号时间线、立即重新分析或人工调整判断。
+2. 进入“通知设置”，按需添加 Server酱微信、企业微信群机器人或 SMTP 邮件通道，配置字段用 Fernet 加密入库，页面只显示 `******`。点“测试推送”验证配置是否通畅。
+3. 进入“来源与日志”，添加条款允许自动访问的 Sitemap 或 Google Trends RSS，选择语言、国家和抓取间隔。Sitemap 只用于发现新增 URL，不被当作排行榜热度。来源的高级 JSON 配置可覆盖默认抓取参数，例如 `{"max_child_sitemaps": 100, "max_concurrency": 10, "request_delay_seconds": 0.3, "user_agent": "自定义 UA"}`。
+4. 对无法自动抓取的平台，可把你人工查看到的榜单游戏名复制到“人工导入候选”，每行一个。
+5. APScheduler 会定期比较来源历史并生成去重候选。待分析候选按照每日额度预算查询 Autocomplete、Trends、YouTube 和 Google SERP。每轮抓取的新增摘要、异常告警（新增占比超过阈值或抓取失败）和新晋 HOT 候选会聚合推送到已配置的通知通道。
+6. 在候选列表查看 HOT/HOLD/IGNORE；进入详情可看分项分数、信号时间线、立即重新分析或人工调整判断。
 
 只要服务器和 SerpAPI 可用额度已经持有，这一模块通常不产生新增现金支出。它不是无限免费：超出 SerpAPI 额度、购买额外额度、增加服务器/代理或使用其他付费数据源仍会产生费用。应用不会自动购买额度，达到内部每日预算或所有池耗尽后会停止查询并等待额度恢复。
 
