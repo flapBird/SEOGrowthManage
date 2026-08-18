@@ -83,3 +83,16 @@ def run_lightweight_migrations(target_engine) -> None:
             connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_reason TEXT"))
         if "agent_judged_at" not in kw_existing:
             connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_judged_at DATETIME"))
+
+    # KeywordSource 的基线标记列。
+    # is_initialized：False=下次抓取走首次基线模式（只建指纹不计新增）；True=已基准化走增量。
+    if "keyword_sources" not in inspector.get_table_names():
+        return
+    src_existing = {column["name"] for column in inspector.get_columns("keyword_sources")}
+    with target_engine.begin() as connection:
+        if "is_initialized" not in src_existing:
+            # 先加列，默认 0（未初始化）；存量来源在下一行统一回填为已基准化。
+            connection.execute(text("ALTER TABLE keyword_sources ADD COLUMN is_initialized BOOLEAN NOT NULL DEFAULT 0"))
+            # 存量来源此前已经抓过、已有指纹数据，标记为已基准化，下次抓取照常增量计新增；
+            # 只有此后新增的来源才从 False 起步、首次抓取建基线。
+            connection.execute(text("UPDATE keyword_sources SET is_initialized = 1"))

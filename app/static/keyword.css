@@ -10,6 +10,8 @@
 .keyword-hold { background: #fff2cf; color: #7a4b00; }
 .keyword-ignore { background: #eef0ef; color: #59615c; }
 .keyword-discovered { background: #eaf1ff; color: #174ea6; }
+.baseline-done { background: #e8f5ed; color: #17643c; }
+.baseline-pending { background: #fff2cf; color: #7a4b00; }
 .keyword-stats { grid-template-columns: repeat(5, 1fr); }
 .signal-panel, .run-table { margin-top: 20px; }
 .source-list > .source-row { padding: 17px 20px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 15px; align-items: center; }

@@ -281,6 +281,7 @@ class KeywordSource(Base):
     config_json: Mapped[str | None] = mapped_column(Text)
     last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
     last_error: Mapped[str | None] = mapped_column(Text)
+    is_initialized: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否已建立首次抓取基线；False=下次抓取走基线模式不计新增
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
 

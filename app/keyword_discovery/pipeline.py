@@ -43,7 +43,14 @@ def _fingerprint(entry: SourceEntry) -> str:
     return hashlib.sha256(f"{entry.url or ''}\n{entry.title.casefold()}".encode()).hexdigest()
 
 
-def ingest_entries(db: Session, source: KeywordSource, entries: list[SourceEntry]) -> tuple[int, int]:
+def ingest_entries(db: Session, source: KeywordSource, entries: list[SourceEntry], baseline_mode: bool = False) -> tuple[int, int]:
+    """把抓回来的条目入库并建候选。
+
+    baseline_mode=True（首次抓取建基线）：只建来源项指纹、刷新 last_seen_at、统计 discovered，
+    完全不碰候选库——几十万历史老词不该一股脑进候选库拖垮 SerpAPI/Agent。
+    baseline_mode=False（默认，增量）：走原有逻辑，新出现的指纹才建候选。
+    手动导入永远传 False（人工精选词应立即生效）。
+    """
     now = now_local()
     discovered = 0
     new_candidates = 0
@@ -65,6 +72,8 @@ def ingest_entries(db: Session, source: KeywordSource, entries: list[SourceEntry
             first_seen_at=now,
             last_seen_at=now,
         ))
+        if baseline_mode:
+            continue  # 基线模式：指纹已建，到此为止，不评估候选。
         normalized = normalize_game_title(entry.title, source.language)
         if not normalized:
             continue
@@ -131,13 +140,21 @@ async def run_source(source_id: int) -> dict:
                 run.finished_at = now_local()
                 db.commit()
                 return {"source": source_name, "status": "failed", "message": source.last_error}
-            discovered, new_candidates = ingest_entries(db, source, entries)
+            # 是否首次抓取建基线：来源未初始化且非 manual（manual 永远走增量，立即建候选）。
+            # 空结果分支已在上面 return，到这里说明抓到了内容，可以安全判定。
+            is_first_run = (not source.is_initialized) and source.source_type != KeywordSourceType.manual
+            discovered, new_candidates = ingest_entries(db, source, entries, baseline_mode=is_first_run)
+            if is_first_run:
+                source.is_initialized = True  # 基线已建立，后续抓取走增量
             source.last_fetched_at = now_local()
             source.last_error = None
             run.status = KeywordFetchStatus.success
             run.discovered_count = discovered
             run.new_candidate_count = new_candidates
-            run.message = f"读取 {len(entries)} 项，新来源项 {discovered}，新候选 {new_candidates}"
+            if is_first_run:
+                run.message = f"首次抓取，已建立基线 {discovered} 条，不计为新增候选；下次起增量计新增"
+            else:
+                run.message = f"读取 {len(entries)} 项，新来源项 {discovered}，新候选 {new_candidates}"
             run.finished_at = now_local()
             db.commit()
             new_keywords = _recent_new_keywords(db, source.id, limit=15)
@@ -148,6 +165,7 @@ async def run_source(source_id: int) -> dict:
                 "new_candidates": new_candidates,
                 "total": len(entries),
                 "new_keywords": new_keywords,
+                "baseline": is_first_run,
             }
         except Exception as exc:
             source.last_error = f"{type(exc).__name__}: {exc}"[:4000]
@@ -183,6 +201,8 @@ def _build_fetch_summary(results: list[dict]) -> tuple[str | None, str]:
 
     anomalies: list[str] = []
     for r in successes:
+        if r.get("baseline"):
+            continue  # 首次抓取建基线：discovered 必然接近全量，不算异常，也不进新增摘要
         total = r.get("total", 0)
         new = r.get("discovered", 0)
         if total > 0 and new / total > settings.keyword_anomaly_ratio:
