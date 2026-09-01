@@ -115,9 +115,11 @@ TargetSite ──< BacklinkRecord >────────── Channel ──
                     └──< AutomationTaskLog
 ```
 
-## Docker 部署
+## Docker + Caddy HTTPS 部署
 
-要求安装 Docker 与 Docker Compose。项目使用包含 Chromium 的官方 Playwright Python 基础镜像，并固定 Uvicorn 为单 worker；这是为了避免每个 worker 各启动一个 APScheduler。
+要求安装 Docker 与 Docker Compose。FastAPI 和 Caddy 分别运行在独立容器中：Caddy 自动管理 HTTPS 证书并反向代理到 Docker 内网的 Uvicorn。Uvicorn 固定为单 worker，避免每个 worker 各启动一个 APScheduler。
+
+部署前需要准备一个域名或已有域名的子域名，并创建 A 记录指向服务器公网 IP。服务器安全组和系统防火墙需要开放 TCP 80、443；公网不再开放 8000。启动前还要确认 80/443 没有被宿主机上已有的 Nginx、Apache 或其他服务占用。
 
 1. 创建配置：
 
@@ -127,7 +129,7 @@ TargetSite ──< BacklinkRecord >────────── Channel ──
    python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
    ```
 
-   将第一条输出填入 `SESSION_SECRET`，第二条填入 `FERNET_KEY`，并设置强密码 `ADMIN_PASSWORD`。`FERNET_KEY` 一旦用于入库就必须长期保管；丢失或变更后已有凭据无法恢复。
+   将第一条输出填入 `SESSION_SECRET`，第二条填入 `FERNET_KEY`，设置强密码 `ADMIN_PASSWORD`，并把 `APP_DOMAIN` 改为实际域名，例如 `seo.example.com`。不要在 `APP_DOMAIN` 中填写协议、路径或端口。`FERNET_KEY` 一旦用于入库就必须长期保管；丢失或变更后已有凭据无法恢复。
 
 2. 启动：
 
@@ -135,9 +137,19 @@ TargetSite ──< BacklinkRecord >────────── Channel ──
    docker compose up -d --build
    ```
 
-3. 访问 `http://服务器IP:8000/login`。生产环境建议用 Caddy/Nginx 配置 HTTPS 反向代理，并把 `.env` 中 `COOKIE_SECURE` 改为 `true`。
+3. 等待 Caddy 完成首次证书申请，然后访问 `https://你的域名/login`。可用以下命令检查状态：
 
-SQLite 文件保存在宿主机 `./data/backlink_manager.db`。备份时建议先停止容器，再复制整个 `data/` 目录和单独保管 `.env`；不要把 `.env` 提交进 Git。
+   ```bash
+   docker compose ps
+   docker compose logs caddy
+   curl -I https://你的域名/login
+   ```
+
+4. Chrome Extension 的“服务器地址”填写同一个根地址，例如 `https://seo.example.com`，不要附加 `/extension`、`/api/v1` 或 `:8000`。
+
+如果使用 Cloudflare 代理，首次部署排障时可先将 DNS 记录设为“仅 DNS”，确认 Caddy 已取得证书且域名可以直接访问后，再按需要启用代理。
+
+SQLite 文件保存在宿主机 `./data/backlink_manager.db`，Caddy 证书保存在 Docker volume `caddy_data`。备份时建议先停止容器，再复制整个 `data/` 目录并单独保管 `.env`；不要把 `.env` 提交进 Git。
 
 ## 关键词发现快速使用
 

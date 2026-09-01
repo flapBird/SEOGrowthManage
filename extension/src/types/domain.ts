@@ -97,7 +97,10 @@ export interface PageAnalysis {
     hasWebsiteField: boolean;
     hasEmailField: boolean;
     hasNameField: boolean;
-    requiresLogin: boolean;
+    loginState: "authenticated" | "unauthenticated" | "unknown";
+    accountRequirement: "required" | "not_required" | "unknown";
+    hasLoginBarrier: boolean;
+    authenticationEvidence: string[];
     hasCaptcha: boolean;
     textareaCount: number;
     editorCount: number;

@@ -38,8 +38,15 @@ export async function saveSettings(input: {
 export function normalizeBaseUrl(value: string): string {
   const parsed = new URL(value.trim());
   const isLocal = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}$/.test(parsed.hostname) || parsed.hostname.includes(":");
   if (parsed.protocol !== "https:" && !(parsed.protocol === "http:" && isLocal)) {
     throw new Error("云端服务必须使用 HTTPS；只有 localhost/127.0.0.1 可使用 HTTP");
+  }
+  if (!isLocal && parsed.port === "8000") {
+    throw new Error("云端地址应填写 Caddy 的 HTTPS 根地址，不要使用 Uvicorn 的 :8000 端口");
+  }
+  if (!isLocal && isIpAddress) {
+    throw new Error("云端地址应使用已配置可信 HTTPS 证书的域名，不能直接填写服务器 IP");
   }
   parsed.hash = "";
   parsed.search = "";
@@ -58,4 +65,3 @@ export async function setCurrentTask(task: BacklinkTask | null): Promise<void> {
     await chrome.storage.local.remove(CURRENT_TASK_KEY);
   }
 }
-

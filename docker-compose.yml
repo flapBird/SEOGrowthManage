@@ -4,10 +4,33 @@ services:
     container_name: SEOGrowthManage
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "8000:8000"
+    environment:
+      COOKIE_SECURE: "true"
+    expose:
+      - "8000"
     volumes:
       - ./data:/app/data
     security_opt:
       - no-new-privileges:true
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: SEOGrowthManage-Caddy
+    restart: unless-stopped
+    depends_on:
+      - backlink-manager
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?APP_DOMAIN must be set in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  caddy_data:
+  caddy_config:

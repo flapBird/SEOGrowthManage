@@ -221,7 +221,9 @@ function renderAnalysis(analysis: PageAnalysis): void {
       <div class="detail"><span>置信度</span><strong>${analysis.confidence}%</strong></div>
       <div class="detail"><span>评论表单</span><strong>${yesNo(analysis.signals.hasCommentForm)}</strong></div>
       <div class="detail"><span>网站字段</span><strong>${yesNo(analysis.signals.hasWebsiteField)}</strong></div>
-      <div class="detail"><span>登录要求</span><strong>${yesNo(analysis.signals.requiresLogin)}</strong></div>
+      <div class="detail"><span>登录状态</span><strong>${loginStateLabel(analysis.signals.loginState)}</strong></div>
+      <div class="detail"><span>账号要求</span><strong>${accountRequirementLabel(analysis.signals.accountRequirement)}</strong></div>
+      <div class="detail"><span>登录阻断</span><strong>${yesNo(analysis.signals.hasLoginBarrier)}</strong></div>
       <div class="detail"><span>验证码</span><strong>${yesNo(analysis.signals.hasCaptcha)}</strong></div>
       <div class="detail"><span>文本区域/编辑器</span><strong>${analysis.signals.textareaCount} / ${analysis.signals.editorCount}</strong></div>
     </div>
@@ -277,6 +279,14 @@ function showError(error: unknown): void {
 
 function yesNo(value: boolean): string {
   return value ? "是" : "否";
+}
+
+function loginStateLabel(value: PageAnalysis["signals"]["loginState"]): string {
+  return value === "authenticated" ? "已登录" : value === "unauthenticated" ? "未登录" : "未知";
+}
+
+function accountRequirementLabel(value: PageAnalysis["signals"]["accountRequirement"]): string {
+  return value === "required" ? "需要账号" : value === "not_required" ? "无需账号" : "未知";
 }
 
 function escapeHtml(value: string): string {

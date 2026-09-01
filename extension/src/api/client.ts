@@ -80,7 +80,10 @@ export class ApiClient {
         },
       });
     } catch (error) {
-      throw new ApiError(error instanceof Error ? `无法连接服务器：${error.message}` : "无法连接服务器");
+      const detail = error instanceof Error ? error.message : "网络请求失败";
+      throw new ApiError(
+        `无法连接服务器：${detail}。请确认域名解析正确、HTTPS 证书有效、443 端口已开放且 Caddy 正在运行。`,
+      );
     }
     if (!response.ok) {
       const message = await readErrorMessage(response);
