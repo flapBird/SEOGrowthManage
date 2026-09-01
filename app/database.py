@@ -83,6 +83,8 @@ def run_lightweight_migrations(target_engine) -> None:
             connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_reason TEXT"))
         if "agent_judged_at" not in kw_existing:
             connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_judged_at DATETIME"))
+        if "last_dispatched_at" not in kw_existing:
+            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN last_dispatched_at DATETIME"))
 
     # KeywordSource 的基线标记列。
     # is_initialized：False=下次抓取走首次基线模式（只建指纹不计新增）；True=已基准化走增量。

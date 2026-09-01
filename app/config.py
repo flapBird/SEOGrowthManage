@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     agent_queue_dir: str = "agent_queue"
     agent_review_cooldown_hours: int = Field(default=72, ge=1, le=720)
     agent_min_score: float = Field(default=20.0, ge=0.0, le=100.0)
+    # 队列背压：in/pending 积压的批次文件数达到此阈值时本轮跳过分发，
+    # 避免消费端（宿主机 Agent 脚本）停摆时无限堆积文件。
+    agent_max_pending_batches: int = Field(default=3, ge=1, le=500)
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore"

@@ -72,6 +72,10 @@ async def dispatch_due_to_agent() -> None:
     if not settings.agent_integration_enabled:
         return
     dirs = _ensure_dirs()
+    # 队列背压：in/pending 积压超过阈值时说明消费端（宿主机 Agent 脚本）跟不上，本轮跳过避免无限堆积。
+    pending_count = len(list(dirs["in_pending"].glob("*.json")))
+    if pending_count >= settings.agent_max_pending_batches:
+        return
     with SessionLocal() as db:
         candidates = db.scalars(
             select(KeywordCandidate)
@@ -90,6 +94,9 @@ async def dispatch_due_to_agent() -> None:
             "candidates": [_candidate_payload(c) for c in worth],
         }
         _atomic_write_json(in_path, payload)
+        # 打上在途时间戳，下一轮过滤时这些候选会被在途去重跳过。
+        for c in worth:
+            c.last_dispatched_at = now
         db.add(AgentBatch(
             batch_id=batch_id,
             candidate_count=len(worth),

@@ -4,6 +4,7 @@ import asyncio
 import json
 import gzip
 from dataclasses import dataclass
+import re
 from urllib.parse import urljoin
 from xml.etree import ElementTree
 
@@ -168,6 +169,15 @@ def _sitemap_entries_from_locs(locs: list[str]) -> list[SourceEntry]:
     return [SourceEntry(title_from_url(loc).strip(), loc) for loc in locs[:MAX_ITEMS]]
 
 
+def _filter_entries_by_pattern(entries: list[SourceEntry], pattern: str | None) -> list[SourceEntry]:
+    """只保留 URL 匹配正则的条目。来源 config_json 配 url_pattern 后，只有匹配的页面
+    （如 /game/xxx）才会进候选；分类页、博客页、标签页等不匹配的噪音 URL 被过滤掉。"""
+    if not pattern:
+        return entries
+    compiled = re.compile(pattern)
+    return [e for e in entries if e.url and compiled.search(e.url)]
+
+
 async def fetch_source_entries(source: KeywordSource) -> list[SourceEntry]:
     if not source.terms_confirmed:
         raise ValueError("尚未确认该来源允许自动访问")
@@ -189,7 +199,8 @@ async def fetch_source_entries(source: KeywordSource) -> list[SourceEntry]:
         root = ElementTree.fromstring(content)
         if _local_name(root.tag) == "urlset":
             entries, _ = parse_sitemap_xml(content)
-            return entries
-        locs = await _collect_urls(client, source.url, max_children, max_concurrency, request_delay)
-        return _sitemap_entries_from_locs(locs)
-
+        else:
+            locs = await _collect_urls(client, source.url, max_children, max_concurrency, request_delay)
+            entries = _sitemap_entries_from_locs(locs)
+        # 按来源 config_json 的 url_pattern 过滤，只保留目标页面（如 /game/xxx），排除分类/博客/标签等噪音。
+        return _filter_entries_by_pattern(entries, config.get("url_pattern"))

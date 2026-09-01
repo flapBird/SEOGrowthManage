@@ -337,6 +337,9 @@ class KeywordCandidate(Base):
     agent_kd: Mapped[int | None] = mapped_column(Integer)               # Agent 查到的关键词难度
     agent_reason: Mapped[str | None] = mapped_column(Text)              # Agent 的推理理由
     agent_judged_at: Mapped[datetime | None] = mapped_column(DateTime)  # 最近一次被 Agent 判断的时间
+    # 最近一次被分发进 Agent 批次的时间。配合冷却窗口做在途去重：
+    # 一个候选被分发后、在冷却期内不会重复打包，即使 Agent 端尚未处理也不会反复发送。
+    last_dispatched_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     signals: Mapped[list[KeywordSignalSnapshot]] = relationship(
         back_populates="candidate", cascade="all, delete-orphan", order_by="KeywordSignalSnapshot.captured_at.desc()"

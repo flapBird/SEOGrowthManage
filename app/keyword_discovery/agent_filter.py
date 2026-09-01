@@ -31,6 +31,12 @@ def is_worth_agent_review(candidate: KeywordCandidate) -> bool:
     if candidate.agent_judged_at and \
             (now_local() - candidate.agent_judged_at) < timedelta(hours=settings.agent_review_cooldown_hours):
         return False
+    # 在途去重：已被分发进批次但尚未超出冷却窗口的候选跳过。
+    # 这里复用 agent_review_cooldown_hours 作为窗口大小：即使 Agent 端还没处理完，
+    # 一个词最多在一个冷却周期内只被打包一次，避免开环盲发导致重复分发。
+    if candidate.last_dispatched_at and \
+            (now_local() - candidate.last_dispatched_at) < timedelta(hours=settings.agent_review_cooldown_hours):
+        return False
     # 本地评分极低，大概率不值得。
     if (candidate.total_score or 0) < settings.agent_min_score:
         return False
