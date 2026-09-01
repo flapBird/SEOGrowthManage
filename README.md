@@ -13,7 +13,7 @@
 
 ### 2. 基础数据管理
 
-- `TargetSite`：自有目标网站，保存名称、网址、备注。
+- `TargetSite`：自有目标网站，同时作为 Extension 的 Project Profile，保存名称、网址、作者、邮箱、Tagline、长短描述、关键词和备注。
 - `Channel`：外链渠道，保存名称、网址、类型、状态、自动化能力和备注。
 - 渠道类型固定为论坛、目录、博客评论、软文平台；状态为正常、失效、已被封禁。
 - 目标网站和渠道都支持创建、搜索、编辑、删除。渠道列表支持按类型和状态组合筛选。
@@ -22,6 +22,7 @@
 
 ### 3. 发布记录与查询看板
 
+- `Submission` 保存插件从真实操作开始产生的历史，`prepared` 只表示表单已填好；它与已经发布/验证的 `BacklinkRecord` 严格分开。
 - `BacklinkRecord` 关联一个 `TargetSite` 和一个 `Channel`，保存实际发布 URL、锚文本、发布日期、发布方式和状态。
 - 发布方式为 `manual` / `auto`，状态为 `pending` / `live` / `removed`。
 - 新增或编辑记录时，目标网站或渠道变化会通过 htmx 请求 `/records/duplicate-check`。如果同一网站在同一渠道已有 `live` 记录，页面显示最近一条记录的发布日期，但不阻止提交。
@@ -113,6 +114,10 @@ TargetSite ──< BacklinkRecord >────────── Channel ──
      └──────< AutomationTask >──────── Channel
                     │
                     └──< AutomationTaskLog
+
+TargetSite ──< BacklinkTask >── Opportunity
+     │              │                │
+     └──────────────┴──< Submission >┘
 ```
 
 ## Docker + Caddy HTTPS 部署

@@ -267,8 +267,21 @@ def site_new(request: Request):
 
 
 @router.post("/sites")
-def site_create(db: Db, name: Annotated[str, Form()], url: Annotated[str, Form()], notes: Annotated[str, Form()] = ""):
-    site = TargetSite(name=name.strip(), url=url.strip(), notes=notes.strip() or None)
+def site_create(
+    db: Db,
+    name: Annotated[str, Form()],
+    url: Annotated[str, Form()],
+    notes: Annotated[str, Form()] = "",
+    author_name: Annotated[str, Form()] = "",
+    email: Annotated[str, Form()] = "",
+    tagline: Annotated[str, Form()] = "",
+    short_description: Annotated[str, Form()] = "",
+    medium_description: Annotated[str, Form()] = "",
+    long_description: Annotated[str, Form()] = "",
+    keywords: Annotated[str, Form()] = "",
+):
+    site = TargetSite(name="", url="")
+    apply_site_form(site, name, url, notes, author_name, email, tagline, short_description, medium_description, long_description, keywords)
     db.add(site)
     db.commit()
     return redirect("/sites", "目标网站已创建")
@@ -280,11 +293,49 @@ def site_edit(request: Request, site_id: int, db: Db):
 
 
 @router.post("/sites/{site_id}")
-def site_update(site_id: int, db: Db, name: Annotated[str, Form()], url: Annotated[str, Form()], notes: Annotated[str, Form()] = ""):
+def site_update(
+    site_id: int,
+    db: Db,
+    name: Annotated[str, Form()],
+    url: Annotated[str, Form()],
+    notes: Annotated[str, Form()] = "",
+    author_name: Annotated[str, Form()] = "",
+    email: Annotated[str, Form()] = "",
+    tagline: Annotated[str, Form()] = "",
+    short_description: Annotated[str, Form()] = "",
+    medium_description: Annotated[str, Form()] = "",
+    long_description: Annotated[str, Form()] = "",
+    keywords: Annotated[str, Form()] = "",
+):
     site = get_or_404(db, TargetSite, site_id)
-    site.name, site.url, site.notes = name.strip(), url.strip(), notes.strip() or None
+    apply_site_form(site, name, url, notes, author_name, email, tagline, short_description, medium_description, long_description, keywords)
     db.commit()
     return redirect("/sites", "目标网站已更新")
+
+
+def apply_site_form(
+    site: TargetSite,
+    name: str,
+    url: str,
+    notes: str,
+    author_name: str,
+    email: str,
+    tagline: str,
+    short_description: str,
+    medium_description: str,
+    long_description: str,
+    keywords: str,
+) -> None:
+    site.name = name.strip()
+    site.url = url.strip()
+    site.notes = notes.strip() or None
+    site.author_name = author_name.strip() or None
+    site.email = email.strip() or None
+    site.tagline = tagline.strip() or None
+    site.short_description = short_description.strip() or None
+    site.medium_description = medium_description.strip() or None
+    site.long_description = long_description.strip() or None
+    site.keywords = keywords.strip() or None
 
 
 @router.post("/sites/{site_id}/delete")

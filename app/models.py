@@ -100,6 +100,17 @@ class BacklinkTaskStatus(str, enum.Enum):
     skipped = "skipped"
 
 
+class SubmissionStatus(str, enum.Enum):
+    prepared = "prepared"
+    submitted = "submitted"
+    pending = "pending"
+    published = "published"
+    duplicate = "duplicate"
+    rejected = "rejected"
+    failed = "failed"
+    unknown = "unknown"
+
+
 class KeywordSourceType(str, enum.Enum):
     sitemap = "sitemap"
     trends_rss = "trends_rss"
@@ -139,6 +150,13 @@ class TargetSite(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(120), index=True)
     url: Mapped[str] = mapped_column(String(2048))
+    author_name: Mapped[str | None] = mapped_column(String(200))
+    email: Mapped[str | None] = mapped_column(String(320))
+    tagline: Mapped[str | None] = mapped_column(String(300))
+    short_description: Mapped[str | None] = mapped_column(Text)
+    medium_description: Mapped[str | None] = mapped_column(Text)
+    long_description: Mapped[str | None] = mapped_column(Text)
+    keywords: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
@@ -146,6 +164,9 @@ class TargetSite(Base):
     records: Mapped[list[BacklinkRecord]] = relationship(back_populates="target_site", cascade="all, delete-orphan")
     tasks: Mapped[list[AutomationTask]] = relationship(back_populates="target_site", cascade="all, delete-orphan")
     backlink_tasks: Mapped[list[BacklinkTask]] = relationship(
+        back_populates="target_site", cascade="all, delete-orphan"
+    )
+    submissions: Mapped[list[Submission]] = relationship(
         back_populates="target_site", cascade="all, delete-orphan"
     )
 
@@ -232,6 +253,9 @@ class Opportunity(Base):
     tasks: Mapped[list[BacklinkTask]] = relationship(
         back_populates="opportunity", cascade="all, delete-orphan"
     )
+    submissions: Mapped[list[Submission]] = relationship(
+        back_populates="opportunity", cascade="all, delete-orphan"
+    )
 
 
 class BacklinkTask(Base):
@@ -261,6 +285,47 @@ class BacklinkTask(Base):
     target_site: Mapped[TargetSite] = relationship(back_populates="backlink_tasks")
     opportunity: Mapped[Opportunity] = relationship(back_populates="tasks")
     claimed_by_token: Mapped[ExtensionToken | None] = relationship(back_populates="claimed_tasks")
+    submissions: Mapped[list[Submission]] = relationship(
+        back_populates="task", cascade="all, delete-orphan"
+    )
+
+
+class Submission(Base):
+    __tablename__ = "submissions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("backlink_tasks.id", ondelete="CASCADE"), index=True
+    )
+    opportunity_id: Mapped[int] = mapped_column(
+        ForeignKey("opportunities.id", ondelete="CASCADE"), index=True
+    )
+    target_site_id: Mapped[int] = mapped_column(
+        ForeignKey("target_sites.id", ondelete="CASCADE"), index=True
+    )
+    target_url: Mapped[str] = mapped_column(String(2048))
+    target_domain: Mapped[str] = mapped_column(String(255), index=True)
+    source_url: Mapped[str] = mapped_column(String(2048), index=True)
+    source_domain: Mapped[str] = mapped_column(String(255), index=True)
+    workflow: Mapped[OpportunityType] = mapped_column(Enum(OpportunityType), index=True)
+    submitted_content: Mapped[str | None] = mapped_column(Text)
+    submitted_website: Mapped[str | None] = mapped_column(String(2048))
+    anchor_text: Mapped[str | None] = mapped_column(String(500))
+    submission_url: Mapped[str | None] = mapped_column(String(2048))
+    status: Mapped[SubmissionStatus] = mapped_column(
+        Enum(SubmissionStatus), default=SubmissionStatus.prepared, index=True
+    )
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    result_message: Mapped[str | None] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text)
+    prepared_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+    task: Mapped[BacklinkTask] = relationship(back_populates="submissions")
+    opportunity: Mapped[Opportunity] = relationship(back_populates="submissions")
+    target_site: Mapped[TargetSite] = relationship(back_populates="submissions")
 
 
 class ChannelBlacklist(Base):

@@ -2,20 +2,23 @@
 
 SEO Growth Console 的本地浏览器执行端。Web 服务部署在云服务器，Extension 运行在用户自己的 Chrome 中；两者只通过 HTTPS JSON API 通信。插件相关源码、构建配置和接口文档均保存在本目录。
 
-## 当前已实现（Phase 1 + Phase 2）
+## 当前已实现（Phase 1–3）
 
 - Chrome Manifest V3 和 Side Panel。
 - 云端服务器地址与 Extension Token 本地保存、连接测试。
 - Web 控制台 `/extension` 创建/撤销 Token、创建 URL 任务、查看任务状态。
 - 数据库仅保存 Token 哈希，明文只在创建后展示一次。
 - 插件加载项目、原子领取下一任务、恢复当前任务和续租。
-- 打开来源页面、标记 `prepared`、跳过并释放任务。
+- 打开来源页面、安全预填充、创建 `prepared` Submission、跳过并释放任务。
 - 当前页面工作流、表单、登录状态、账号要求、登录阻断和 CAPTCHA 检测。
 - “Submit a product / Launch your product”一类页面优先识别为 `directory`。
 - 所有跨域 API 请求由 Background Service Worker 发出。
 - 按服务器域名和当前页面域名请求可选权限。
+- 项目资料提供 Name、Email、Website、Tagline 和长短描述。
+- 预填前显示字段、目标值、置信度与历史重复提示。
+- 支持原生 input/textarea/select/contenteditable，并触发 React/Vue 常用的 input/change/blur 事件。
 
-页面分析仍然只检测 DOM，不填写表单、不点击提交、不绕过 CAPTCHA。Submission 和 Backlink Verification 将在后续阶段接入。
+只有用户点击“确认填入（不会提交）”后才会填写空字段；已有内容不会覆盖。插件不会点击 Submit，不处理 CAPTCHA。真正提交、结果识别和 Backlink Verification 将在后续阶段接入。
 
 ## 本地开发
 
@@ -62,6 +65,9 @@ GET   /api/v1/projects
 POST  /api/v1/tasks/next/claim
 GET   /api/v1/tasks/:id
 PATCH /api/v1/tasks/:id
+GET   /api/v1/submissions/check
+GET   /api/v1/submissions
+POST  /api/v1/submissions
 ```
 
 请求使用：
@@ -82,3 +88,4 @@ Content-Type: application/json
 - Background 负责 API 通信；页面分析函数只返回结构化检测结果。
 - Token 当前拥有插件 API 的全项目访问能力，建议每台浏览器单独创建并设置到期时间。
 - 所有实际 Submit 动作仍必须由用户明确确认。
+- `prepared` 仅表示表单已填好，不代表已经提交或产生外链。

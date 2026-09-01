@@ -3,6 +3,8 @@ import type {
   CreateSubmissionInput,
   CreateVerificationInput,
   Project,
+  Submission,
+  SubmissionCheck,
   UpdateBacklinkTaskInput,
 } from "../types/domain";
 import type { ServerSettings } from "../storage/settings";
@@ -48,12 +50,26 @@ export class ApiClient {
     });
   }
 
-  createSubmission(input: CreateSubmissionInput): Promise<unknown> {
-    return this.request("/api/v1/submissions", {
+  createSubmission(input: CreateSubmissionInput): Promise<Submission> {
+    return this.request<Submission>("/api/v1/submissions", {
       method: "POST",
       headers: { "Idempotency-Key": crypto.randomUUID() },
       body: JSON.stringify(input),
     });
+  }
+
+  checkSubmissions(projectId: number, sourceUrl: string): Promise<SubmissionCheck> {
+    const query = new URLSearchParams({ projectId: String(projectId), sourceUrl });
+    return this.request<SubmissionCheck>(`/api/v1/submissions/check?${query}`);
+  }
+
+  submissions(filters: { taskId?: number; projectId?: number; limit?: number } = {}): Promise<Submission[]> {
+    const query = new URLSearchParams();
+    if (filters.taskId) query.set("taskId", String(filters.taskId));
+    if (filters.projectId) query.set("projectId", String(filters.projectId));
+    if (filters.limit) query.set("limit", String(filters.limit));
+    const suffix = query.size ? `?${query}` : "";
+    return this.request<Submission[]>(`/api/v1/submissions${suffix}`);
   }
 
   createVerification(input: CreateVerificationInput): Promise<unknown> {

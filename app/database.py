@@ -51,6 +51,24 @@ def run_lightweight_migrations(target_engine) -> None:
     from sqlalchemy import inspect, text
 
     inspector = inspect(target_engine)
+    if "target_sites" in inspector.get_table_names():
+        site_existing = {column["name"] for column in inspector.get_columns("target_sites")}
+        site_columns = {
+            "author_name": "VARCHAR(200)",
+            "email": "VARCHAR(320)",
+            "tagline": "VARCHAR(300)",
+            "short_description": "TEXT",
+            "medium_description": "TEXT",
+            "long_description": "TEXT",
+            "keywords": "TEXT",
+        }
+        with target_engine.begin() as connection:
+            for column_name, column_type in site_columns.items():
+                if column_name not in site_existing:
+                    connection.execute(
+                        text(f"ALTER TABLE target_sites ADD COLUMN {column_name} {column_type}")
+                    )
+
     if "channels" not in inspector.get_table_names():
         return
     existing = {column["name"] for column in inspector.get_columns("channels")}

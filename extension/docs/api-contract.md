@@ -28,7 +28,14 @@ GET /api/v1/projects
   {
     "id": 1,
     "name": "Example Project",
-    "website": "https://example.com"
+    "website": "https://example.com",
+    "authorName": "Alice",
+    "email": "alice@example.com",
+    "tagline": "Example tagline",
+    "shortDescription": "Short description",
+    "mediumDescription": "Medium description",
+    "longDescription": "Long description",
+    "keywords": ["seo", "growth"]
   }
 ]
 ```
@@ -60,7 +67,19 @@ Idempotency-Key: <uuid>
   "note": null,
   "leaseExpiresAt": "2026-09-01T10:20:00",
   "createdAt": "2026-09-01T10:00:00",
-  "updatedAt": "2026-09-01T10:00:00"
+  "updatedAt": "2026-09-01T10:00:00",
+  "project": {
+    "id": 1,
+    "name": "Example Project",
+    "website": "https://example.com",
+    "authorName": "Alice",
+    "email": "alice@example.com",
+    "tagline": "Example tagline",
+    "shortDescription": "Short description",
+    "mediumDescription": "Medium description",
+    "longDescription": "Long description",
+    "keywords": ["seo", "growth"]
+  }
 }
 ```
 
@@ -77,17 +96,62 @@ GET /api/v1/tasks/10
 ```http
 PATCH /api/v1/tasks/10
 
-{"status":"prepared","note":"页面已检查，等待提交"}
+{"status":"processing"}
 ```
 
 支持的状态转换：
 
 ```text
-processing -> processing | prepared | completed | failed | skipped
+processing -> processing | completed | failed | skipped
 prepared   -> processing | completed | failed | skipped
 ```
 
-以 `processing` 更新相当于 heartbeat，会将租约延长 20 分钟；切换到其他状态会清除租约。
+以 `processing` 更新相当于 heartbeat，会将租约延长 20 分钟；切换到其他状态会清除租约。`prepared` 只能由创建 Submission 的接口设置，确保任务状态不会绕过历史记录。
+
+## Submission duplicate check
+
+```http
+GET /api/v1/submissions/check?projectId=1&sourceUrl=https%3A%2F%2Fpublisher.example%2Fsubmit
+```
+
+```json
+{
+  "exactSubmissionCount": 1,
+  "domainSubmissionCount": 3,
+  "domainBacklinkCount": 1,
+  "latestStatus": "prepared"
+}
+```
+
+提示历史重复但不默认禁止操作。
+
+## Create prepared Submission
+
+```http
+POST /api/v1/submissions
+Idempotency-Key: <uuid>
+
+{
+  "taskId": 10,
+  "status": "prepared",
+  "targetUrl": "https://example.com/product",
+  "sourceUrl": "https://publisher.example/submit",
+  "workflow": "directory",
+  "submittedContent": "Description entered into the form",
+  "submittedWebsite": "https://example.com/product",
+  "anchorText": "Example",
+  "resultMessage": "安全预填 4 个字段"
+}
+```
+
+本阶段只接受 `prepared`。同一任务、来源 URL 已有 prepared 记录时会更新原记录，避免重复点击产生多条相同历史。创建成功后任务也变为 `prepared`。
+
+历史查询：
+
+```http
+GET /api/v1/submissions?projectId=1&limit=50
+GET /api/v1/submissions?taskId=10
+```
 
 ## Error
 
@@ -105,7 +169,7 @@ prepared   -> processing | completed | failed | skipped
 ## 后续接口（尚未实现）
 
 ```text
-POST /api/v1/submissions
+PATCH /api/v1/submissions/:id
 POST /api/v1/verifications
 GET  /api/v1/backlinks/history
 ```

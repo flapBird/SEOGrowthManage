@@ -21,6 +21,8 @@ from .models import (
     OpportunitySource,
     OpportunityStatus,
     OpportunityType,
+    Submission,
+    SubmissionStatus,
     TargetSite,
     now_local,
 )
@@ -48,10 +50,17 @@ def extension_context(db: Session, issued_token: str | None = None) -> dict:
             select(ExtensionToken).order_by(ExtensionToken.created_at.desc())
         ).all(),
         "tasks": tasks,
+        "submissions": db.scalars(
+            select(Submission)
+            .options(joinedload(Submission.target_site), joinedload(Submission.opportunity))
+            .order_by(Submission.created_at.desc(), Submission.id.desc())
+            .limit(100)
+        ).all(),
         "sites": db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
         "issued_token": issued_token,
         "OpportunityType": OpportunityType,
         "BacklinkTaskStatus": BacklinkTaskStatus,
+        "SubmissionStatus": SubmissionStatus,
     }
 
 
@@ -174,4 +183,3 @@ def validate_source_url(value: str) -> tuple[str, str]:
         raise HTTPException(422, "任务来源 URL 必须是有效的 HTTP/HTTPS 地址")
     parsed = parsed._replace(fragment="")
     return parsed.geturl(), channel_host(parsed.geturl())
-

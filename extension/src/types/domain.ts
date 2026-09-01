@@ -8,6 +8,9 @@ export interface Project {
   email?: string | null;
   tagline?: string | null;
   shortDescription?: string | null;
+  mediumDescription?: string | null;
+  longDescription?: string | null;
+  keywords?: string[];
 }
 
 export type WorkflowType =
@@ -40,10 +43,11 @@ export interface BacklinkTask {
   leaseExpiresAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  project: Project;
 }
 
 export interface UpdateBacklinkTaskInput {
-  status: Extract<BacklinkTaskStatus, "processing" | "prepared" | "completed" | "failed" | "skipped">;
+  status: Extract<BacklinkTaskStatus, "processing" | "completed" | "failed" | "skipped">;
   note?: string;
 }
 
@@ -69,6 +73,73 @@ export interface CreateSubmissionInput {
   resultMessage?: string;
   note?: string;
   submittedAt?: string;
+}
+
+export interface Submission {
+  id: EntityId;
+  taskId: EntityId;
+  opportunityId: EntityId;
+  projectId: EntityId;
+  targetUrl: string;
+  targetDomain: string;
+  sourceUrl: string;
+  sourceDomain: string;
+  workflow: WorkflowType;
+  submittedContent?: string | null;
+  submittedWebsite?: string | null;
+  anchorText?: string | null;
+  submissionUrl?: string | null;
+  status: SubmissionStatus;
+  submittedAt?: string | null;
+  verifiedAt?: string | null;
+  resultMessage?: string | null;
+  note?: string | null;
+  preparedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubmissionCheck {
+  exactSubmissionCount: number;
+  domainSubmissionCount: number;
+  domainBacklinkCount: number;
+  latestStatus?: SubmissionStatus | null;
+}
+
+export type FillFieldKind = "title" | "name" | "email" | "website" | "tagline" | "description" | "comment";
+
+export interface FormFillInput {
+  workflow: WorkflowType;
+  project: Project;
+  targetUrl: string;
+  commentDraft?: string;
+}
+
+export interface FormFieldMatch {
+  kind: FillFieldKind;
+  label: string;
+  confidence: number;
+  value: string;
+  willFill: boolean;
+  matchesExpected: boolean;
+  reason?: string;
+}
+
+export interface FormFillResult {
+  url: string;
+  fields: FormFieldMatch[];
+  warnings: string[];
+  confidence: number;
+  canFill: boolean;
+  filledCount: number;
+  skippedCount: number;
+  matchedCount: number;
+}
+
+export interface FillAndRecordResult {
+  fill: FormFillResult;
+  submission: Submission;
+  task: BacklinkTask;
 }
 
 export interface CreateVerificationInput {

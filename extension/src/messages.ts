@@ -2,8 +2,12 @@ import type {
   BacklinkTask,
   CreateSubmissionInput,
   CreateVerificationInput,
+  FillAndRecordResult,
+  FormFillInput,
+  FormFillResult,
   PageAnalysis,
   Project,
+  SubmissionCheck,
   UpdateBacklinkTaskInput,
 } from "./types/domain";
 
@@ -23,6 +27,9 @@ export type RuntimeRequest =
   | { type: "GET_CURRENT_TASK" }
   | { type: "SET_CURRENT_TASK"; task: BacklinkTask | null }
   | { type: "ANALYZE_ACTIVE_TAB" }
+  | { type: "PREVIEW_FORM"; input: FormFillInput; task: BacklinkTask }
+  | { type: "FILL_FORM"; input: FormFillInput; task: BacklinkTask; preview: FormFillResult }
+  | { type: "CHECK_SUBMISSIONS"; projectId: number; sourceUrl: string }
   | { type: "OPEN_TASK"; task: BacklinkTask }
   | { type: "CREATE_SUBMISSION"; input: CreateSubmissionInput }
   | { type: "CREATE_VERIFICATION"; input: CreateVerificationInput };
@@ -36,6 +43,9 @@ export type MessageData =
   | Project[]
   | BacklinkTask
   | PageAnalysis
+  | FormFillResult
+  | FillAndRecordResult
+  | SubmissionCheck
   | null
   | { connected: true; server: string }
   | { opened: true };

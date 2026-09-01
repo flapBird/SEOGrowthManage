@@ -5,8 +5,13 @@
 <form class="panel form-card stack" method="post" action="{{ '/sites/' ~ site.id if site else '/sites' }}">
   <label>网站名称<input name="name" value="{{ site.name if site else '' }}" maxlength="120" required></label>
   <label>网站网址<input type="url" name="url" value="{{ site.url if site else '' }}" placeholder="https://example.com" required></label>
+  <div class="form-grid"><label>作者 / 展示名称<input name="author_name" value="{{ site.author_name or '' if site else '' }}" maxlength="200" placeholder="用于评论 Name 字段"></label><label>联系邮箱<input type="email" name="email" value="{{ site.email or '' if site else '' }}" maxlength="320" placeholder="用于提交表单"></label></div>
+  <label>一句话介绍<input name="tagline" value="{{ site.tagline or '' if site else '' }}" maxlength="300" placeholder="适合 Tagline / Subtitle"></label>
+  <label>简短介绍<textarea name="short_description" rows="2" placeholder="适合短描述字段">{{ site.short_description or '' if site else '' }}</textarea></label>
+  <label>中等介绍<textarea name="medium_description" rows="4" placeholder="适合常规 Directory 描述">{{ site.medium_description or '' if site else '' }}</textarea></label>
+  <label>完整介绍<textarea name="long_description" rows="6" placeholder="适合长描述或博文简介">{{ site.long_description or '' if site else '' }}</textarea></label>
+  <label>关键词<input name="keywords" value="{{ site.keywords or '' if site else '' }}" placeholder="逗号分隔，仅保存资料，本阶段不自动选择分类"></label>
   <label>备注<textarea name="notes" rows="4">{{ site.notes or '' if site else '' }}</textarea></label>
   <div class="actions"><a class="button" href="/sites">取消</a><button class="primary" type="submit">保存</button></div>
 </form>
 {% endblock %}
-

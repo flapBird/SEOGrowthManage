@@ -64,5 +64,19 @@
   </tr>{% else %}<tr><td colspan="7" class="empty">尚未创建插件任务。</td></tr>{% endfor %}
   </tbody></table>
 </section>
-{% endblock %}
 
+<section class="panel table-wrap">
+  <div class="panel-head"><h2>最近 Submission</h2><small>预填只记录 prepared，不等于已经发布外链</small></div>
+  <table><thead><tr><th>Submission</th><th>项目</th><th>来源</th><th>工作流</th><th>状态</th><th>填写内容</th><th>时间</th></tr></thead><tbody>
+  {% for submission in submissions %}<tr>
+    <td><strong>#{{ submission.id }}</strong><small>任务 #{{ submission.task_id }}</small></td>
+    <td>{{ submission.target_site.name }}<small>{{ submission.target_url }}</small></td>
+    <td><a href="{{ submission.source_url }}" target="_blank" rel="noopener">{{ submission.source_domain }}</a><small>{{ submission.source_url }}</small></td>
+    <td>{{ submission.workflow.value }}</td>
+    <td><span class="badge status-{{ submission.status.value }}">{{ submission.status.value }}</span></td>
+    <td>{% if submission.submitted_content %}{{ submission.submitted_content[:80] }}{% else %}—{% endif %}<small>{{ submission.result_message or '' }}</small></td>
+    <td>{{ submission.prepared_at.strftime('%Y-%m-%d %H:%M') }}</td>
+  </tr>{% else %}<tr><td colspan="7" class="empty">还没有插件预填记录。</td></tr>{% endfor %}
+  </tbody></table>
+</section>
+{% endblock %}

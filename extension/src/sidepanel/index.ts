@@ -1,5 +1,13 @@
 import type { PublicSettings, RuntimeRequest, RuntimeResponse } from "../messages";
-import type { BacklinkTask, PageAnalysis, Project } from "../types/domain";
+import type {
+  BacklinkTask,
+  FillAndRecordResult,
+  FormFillInput,
+  FormFillResult,
+  PageAnalysis,
+  Project,
+  SubmissionCheck,
+} from "../types/domain";
 import "./styles.css";
 
 const app = document.querySelector<HTMLDivElement>("#app");
@@ -30,6 +38,12 @@ app.innerHTML = `
         <div class="card-head"><div><h2>当前页面</h2><p class="muted">只检测页面，不会点击提交</p></div><button id="analyze-page" class="button primary">分析页面</button></div>
         <div id="analysis-content" class="empty">尚未分析当前页面</div>
       </section>
+      <section class="card">
+        <div class="card-head"><div><h2>安全预填充</h2><p class="muted">先预览映射；确认后只填写字段，绝不点击 Submit</p></div><span class="badge warning">人工确认</span></div>
+        <label>评论 / 留言草稿<textarea id="comment-draft" rows="4" placeholder="评论工作流请先填写；Directory 会优先使用项目介绍"></textarea></label>
+        <div class="actions"><button id="preview-form" class="button" disabled>预览字段</button><button id="fill-form" class="button primary" disabled>确认填入（不会提交）</button></div>
+        <div id="fill-content" class="empty">请先领取任务并打开来源页面</div>
+      </section>
     </div>
     <div id="toast" class="toast" hidden></div>
   </main>
@@ -44,16 +58,31 @@ const elements = {
   nextTask: byId<HTMLButtonElement>("next-task"),
   taskContent: byId<HTMLDivElement>("task-content"),
   analysisContent: byId<HTMLDivElement>("analysis-content"),
+  commentDraft: byId<HTMLTextAreaElement>("comment-draft"),
+  previewForm: byId<HTMLButtonElement>("preview-form"),
+  fillForm: byId<HTMLButtonElement>("fill-form"),
+  fillContent: byId<HTMLDivElement>("fill-content"),
   toast: byId<HTMLDivElement>("toast"),
 };
 
 let currentTask: BacklinkTask | null = null;
+let lastFillPreview: FormFillResult | null = null;
+let lastSubmissionCheck: SubmissionCheck | null = null;
 
 byId("save-settings").addEventListener("click", () => void saveConnectionSettings());
 byId("test-connection").addEventListener("click", () => void testConnection());
 byId("refresh-projects").addEventListener("click", () => void loadProjects());
 byId("next-task").addEventListener("click", () => void claimNextTask());
 byId("analyze-page").addEventListener("click", () => void analyzePage());
+elements.previewForm.addEventListener("click", () => void previewForm());
+elements.fillForm.addEventListener("click", () => void fillForm());
+elements.commentDraft.addEventListener("input", () => {
+  if (!lastFillPreview) return;
+  lastFillPreview = null;
+  elements.fillForm.disabled = true;
+  elements.fillContent.className = "empty";
+  elements.fillContent.textContent = "草稿已变化，请重新预览字段";
+});
 elements.projectSelect.addEventListener("change", () => {
   elements.nextTask.disabled = !elements.projectSelect.value;
 });
@@ -161,9 +190,15 @@ function renderProjects(projects: Project[]): void {
 }
 
 function renderTask(task: BacklinkTask | null): void {
+  elements.previewForm.disabled = !task;
+  elements.fillForm.disabled = true;
+  lastFillPreview = null;
+  lastSubmissionCheck = null;
   if (!task) {
     elements.taskContent.className = "empty";
     elements.taskContent.textContent = "当前没有任务";
+    elements.fillContent.className = "empty";
+    elements.fillContent.textContent = "请先领取任务并打开来源页面";
     return;
   }
   elements.taskContent.className = "";
@@ -176,7 +211,6 @@ function renderTask(task: BacklinkTask | null): void {
     </div>
     <div class="actions">
       <button id="open-task" class="button primary">打开任务页面</button>
-      ${task.status === "processing" ? '<button id="prepare-task" class="button">标记已准备</button>' : ""}
       <button id="skip-task" class="button">跳过任务</button>
     </div>
   `;
@@ -188,13 +222,11 @@ function renderTask(task: BacklinkTask | null): void {
       showError(error);
     }
   });
-  const prepareButton = document.getElementById("prepare-task");
-  prepareButton?.addEventListener("click", () => void updateCurrentTask("prepared", "页面已检查，等待后续提交"));
   byId("skip-task").addEventListener("click", () => void updateCurrentTask("skipped", "用户在插件中跳过任务"));
 }
 
 async function updateCurrentTask(
-  status: "prepared" | "skipped",
+  status: "skipped",
   note: string,
 ): Promise<void> {
   if (!currentTask) return;
@@ -204,12 +236,86 @@ async function updateCurrentTask(
       taskId: currentTask.id,
       input: { status, note },
     });
-    currentTask = status === "skipped" ? null : updated;
+    currentTask = null;
     renderTask(currentTask);
-    showToast(status === "skipped" ? "任务已跳过并释放" : "任务已标记为已准备");
+    showToast("任务已跳过并释放");
   } catch (error) {
     showError(error);
   }
+}
+
+function currentFillInput(): FormFillInput {
+  if (!currentTask) throw new Error("请先领取插件任务");
+  return {
+    workflow: currentTask.workflow,
+    project: currentTask.project,
+    targetUrl: currentTask.targetUrl,
+    commentDraft: elements.commentDraft.value.trim() || undefined,
+  };
+}
+
+async function previewForm(): Promise<void> {
+  if (!currentTask) return;
+  try {
+    await ensureActiveTabPermission();
+    elements.fillContent.className = "empty";
+    elements.fillContent.textContent = "正在检查可填写字段…";
+    lastFillPreview = await send<FormFillResult>({ type: "PREVIEW_FORM", input: currentFillInput(), task: currentTask });
+    lastSubmissionCheck = await send<SubmissionCheck>({
+      type: "CHECK_SUBMISSIONS",
+      projectId: currentTask.projectId,
+      sourceUrl: lastFillPreview.url,
+    });
+    renderFillPreview(lastFillPreview, lastSubmissionCheck);
+    elements.fillForm.disabled = !lastFillPreview.canFill;
+  } catch (error) {
+    elements.fillContent.className = "empty";
+    elements.fillContent.textContent = "字段预览失败";
+    showError(error);
+  }
+}
+
+async function fillForm(): Promise<void> {
+  if (!currentTask || !lastFillPreview?.canFill) return;
+  try {
+    elements.fillForm.disabled = true;
+    const result = await send<FillAndRecordResult>({
+      type: "FILL_FORM",
+      input: currentFillInput(),
+      task: currentTask,
+      preview: lastFillPreview,
+    });
+    currentTask = result.task;
+    renderTask(currentTask);
+    renderFillCompletion(result);
+    showToast(`已填写 ${result.fill.filledCount} 个字段，并记录 Submission #${result.submission.id}`);
+  } catch (error) {
+    elements.fillForm.disabled = false;
+    showError(error);
+  }
+}
+
+function renderFillPreview(preview: FormFillResult, check: SubmissionCheck): void {
+  const warnings = [
+    ...preview.warnings,
+    ...(check.exactSubmissionCount ? [`当前 URL 已有 ${check.exactSubmissionCount} 次 Submission`] : []),
+    ...(check.domainSubmissionCount ? [`当前域名已有 ${check.domainSubmissionCount} 次 Submission`] : []),
+    ...(check.domainBacklinkCount ? [`当前域名已有 ${check.domainBacklinkCount} 条正式外链`] : []),
+  ];
+  elements.fillContent.className = "";
+  elements.fillContent.innerHTML = `
+    <div class="details">
+      <div class="detail"><span>映射置信度</span><strong>${preview.confidence}%</strong></div>
+      ${preview.fields.map((field) => `<div class="field-preview"><div><strong>${escapeHtml(field.kind)}</strong><span>${escapeHtml(field.label)}</span></div><code>${escapeHtml(field.value)}</code><small>${field.matchesExpected ? "已有目标值" : field.willFill ? `将填入 · ${field.confidence}%` : escapeHtml(field.reason || "跳过")}</small></div>`).join("")}
+    </div>
+    ${warnings.length ? `<div class="warning-list">${warnings.map((warning) => `<p>⚠ ${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
+    ${preview.canFill ? '<p class="summary">确认填入只会写入上面列出的空字段；现有内容不会覆盖，页面提交按钮不会被点击。</p>' : '<p class="summary danger-text">当前页面不满足安全填入条件，请人工处理。</p>'}
+  `;
+}
+
+function renderFillCompletion(result: FillAndRecordResult): void {
+  elements.fillContent.className = "";
+  elements.fillContent.innerHTML = `<p class="summary">已安全填入 ${result.fill.filledCount} 个字段，${result.fill.matchedCount} 个字段原本已有目标值。Submission #${result.submission.id} 状态为 prepared；页面尚未提交。</p>`;
 }
 
 function renderAnalysis(analysis: PageAnalysis): void {
