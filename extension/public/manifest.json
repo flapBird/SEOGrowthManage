@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Backlink Assistant",
+  "description": "SEO Growth Console 的本地浏览器执行端。",
+  "version": "0.1.0",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "sidePanel",
+    "scripting",
+    "storage",
+    "tabs"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "打开 Backlink Assistant"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
+

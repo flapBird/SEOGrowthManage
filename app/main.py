@@ -10,6 +10,8 @@ from .database import Base, engine, run_lightweight_migrations
 from .security import CredentialCipher
 from .web import public_router, router
 from .keyword_web import router as keyword_router
+from .extension_api import router as extension_api_router
+from .extension_web import router as extension_web_router
 
 
 @asynccontextmanager
@@ -32,6 +34,8 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="s
 app.include_router(public_router)
 app.include_router(router)
 app.include_router(keyword_router)
+app.include_router(extension_web_router)
+app.include_router(extension_api_router)
 
 
 @app.exception_handler(HTTPException)

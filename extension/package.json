@@ -1,0 +1,18 @@
+{
+  "name": "seo-growth-backlink-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm run typecheck && vite build"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.32",
+    "@types/node": "^24.3.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3"
+  }
+}

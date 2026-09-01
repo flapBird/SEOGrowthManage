@@ -64,6 +64,42 @@ class TaskStatus(str, enum.Enum):
     needs_attention = "needs_attention"
 
 
+class OpportunityType(str, enum.Enum):
+    blog_comment = "blog_comment"
+    article = "article"
+    guest_post = "guest_post"
+    directory = "directory"
+    forum = "forum"
+    other = "other"
+    unknown = "unknown"
+
+
+class OpportunitySource(str, enum.Enum):
+    manual = "manual"
+    csv = "csv"
+    semrush = "semrush"
+    page_discovery = "page_discovery"
+    competitor_backlink = "competitor_backlink"
+
+
+class OpportunityStatus(str, enum.Enum):
+    new = "new"
+    scanned = "scanned"
+    eligible = "eligible"
+    maybe = "maybe"
+    unsupported = "unsupported"
+    processed = "processed"
+
+
+class BacklinkTaskStatus(str, enum.Enum):
+    ready = "ready"
+    processing = "processing"
+    prepared = "prepared"
+    completed = "completed"
+    failed = "failed"
+    skipped = "skipped"
+
+
 class KeywordSourceType(str, enum.Enum):
     sitemap = "sitemap"
     trends_rss = "trends_rss"
@@ -109,6 +145,9 @@ class TargetSite(Base):
 
     records: Mapped[list[BacklinkRecord]] = relationship(back_populates="target_site", cascade="all, delete-orphan")
     tasks: Mapped[list[AutomationTask]] = relationship(back_populates="target_site", cascade="all, delete-orphan")
+    backlink_tasks: Mapped[list[BacklinkTask]] = relationship(
+        back_populates="target_site", cascade="all, delete-orphan"
+    )
 
 
 class Channel(Base):
@@ -141,6 +180,87 @@ class Channel(Base):
     submission_batches: Mapped[list[SubmissionBatch]] = relationship(
         back_populates="channel", cascade="all, delete-orphan"
     )
+    opportunities: Mapped[list[Opportunity]] = relationship(back_populates="channel")
+
+
+class ExtensionToken(Base):
+    __tablename__ = "extension_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    token_prefix: Mapped[str] = mapped_column(String(16), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+    claimed_tasks: Mapped[list[BacklinkTask]] = relationship(back_populates="claimed_by_token")
+
+
+class Opportunity(Base):
+    __tablename__ = "opportunities"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    channel_id: Mapped[int | None] = mapped_column(
+        ForeignKey("channels.id", ondelete="SET NULL"), index=True
+    )
+    url: Mapped[str] = mapped_column(String(2048), index=True)
+    domain: Mapped[str] = mapped_column(String(255), index=True)
+    opportunity_type: Mapped[OpportunityType] = mapped_column(
+        Enum(OpportunityType), default=OpportunityType.unknown, index=True
+    )
+    source: Mapped[OpportunitySource] = mapped_column(
+        Enum(OpportunitySource), default=OpportunitySource.manual, index=True
+    )
+    status: Mapped[OpportunityStatus] = mapped_column(
+        Enum(OpportunityStatus), default=OpportunityStatus.new, index=True
+    )
+    page_title: Mapped[str | None] = mapped_column(String(500))
+    language: Mapped[str | None] = mapped_column(String(20))
+    opportunity_score: Mapped[float | None] = mapped_column(Float)
+    has_comment_form: Mapped[bool | None] = mapped_column(Boolean)
+    has_website_field: Mapped[bool | None] = mapped_column(Boolean)
+    requires_login: Mapped[bool | None] = mapped_column(Boolean)
+    has_captcha: Mapped[bool | None] = mapped_column(Boolean)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+    channel: Mapped[Channel | None] = relationship(back_populates="opportunities")
+    tasks: Mapped[list[BacklinkTask]] = relationship(
+        back_populates="opportunity", cascade="all, delete-orphan"
+    )
+
+
+class BacklinkTask(Base):
+    __tablename__ = "backlink_tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    target_site_id: Mapped[int] = mapped_column(
+        ForeignKey("target_sites.id", ondelete="CASCADE"), index=True
+    )
+    opportunity_id: Mapped[int] = mapped_column(
+        ForeignKey("opportunities.id", ondelete="CASCADE"), index=True
+    )
+    target_url: Mapped[str] = mapped_column(String(2048))
+    workflow: Mapped[OpportunityType] = mapped_column(Enum(OpportunityType), index=True)
+    status: Mapped[BacklinkTaskStatus] = mapped_column(
+        Enum(BacklinkTaskStatus), default=BacklinkTaskStatus.ready, index=True
+    )
+    anchor_text: Mapped[str | None] = mapped_column(String(500))
+    note: Mapped[str | None] = mapped_column(Text)
+    claimed_by_token_id: Mapped[int | None] = mapped_column(
+        ForeignKey("extension_tokens.id", ondelete="SET NULL"), index=True
+    )
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+
+    target_site: Mapped[TargetSite] = relationship(back_populates="backlink_tasks")
+    opportunity: Mapped[Opportunity] = relationship(back_populates="tasks")
+    claimed_by_token: Mapped[ExtensionToken | None] = relationship(back_populates="claimed_tasks")
 
 
 class ChannelBlacklist(Base):
