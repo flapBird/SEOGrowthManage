@@ -18,6 +18,7 @@ from .keyword_discovery.agent_queue import _ensure_dirs, _queue_root, dispatch_d
 from .models import (
     AgentBatch,
     AutomationTask,
+    BacklinkOrigin,
     BacklinkRecord,
     Channel,
     ChannelBlacklist,
@@ -66,6 +67,29 @@ def channel_type_display(channel) -> str:
     return CHANNEL_TYPE_LABELS.get(channel.channel_type, channel.channel_type.value)
 
 
+BACKLINK_ORIGIN_LABELS = {
+    BacklinkOrigin.manual: "人工登记",
+    BacklinkOrigin.batch: "批量登记",
+    BacklinkOrigin.automation: "自动适配器",
+    BacklinkOrigin.extension_verified: "插件验证",
+}
+
+
+def link_rel_display(value: str | None) -> str:
+    if not value:
+        return "—"
+    try:
+        decoded = json.loads(value)
+    except json.JSONDecodeError:
+        return value
+    return " ".join(str(item) for item in decoded) if isinstance(decoded, list) else value
+
+
+def encode_link_rel(value: str) -> str | None:
+    tokens = list(dict.fromkeys(part.lower() for part in value.split() if part.strip()))
+    return json.dumps(tokens, ensure_ascii=False) if tokens else None
+
+
 templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
 templates.env.globals.update(
     channel_type_labels=CHANNEL_TYPE_LABELS,
@@ -80,6 +104,8 @@ templates.env.globals.update(
         RecordStatus.live: "正常",
         RecordStatus.removed: "已失效",
     },
+    backlink_origin_labels=BACKLINK_ORIGIN_LABELS,
+    link_rel_display=link_rel_display,
     task_status_labels={
         TaskStatus.pending: "等待中",
         TaskStatus.running: "执行中",
@@ -106,6 +132,7 @@ templates.env.globals.update(
         LinkType.nofollow: "Nofollow",
     },
    PublishMethod=PublishMethod,
+    BacklinkOrigin=BacklinkOrigin,
     RecordStatus=RecordStatus,
     SubmissionBatchStatus=SubmissionBatchStatus,
     SubmissionItemStatus=SubmissionItemStatus,
@@ -373,7 +400,7 @@ def channel_new(request: Request):
     return render(request, "channels/form.html", channel=None)
 
 
-def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str, status: str, supports_automation: str | None, adapter_key: str, adapter_config: str, notes: str, requires_login: str | None = None, channel_type_other: str = "", login_username: str = "", login_password: str = "", link_type: str = "", dr_value: str = "", monthly_traffic: str = "") -> None:
+def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str, status: str, supports_automation: str | None, adapter_key: str, adapter_config: str, notes: str, requires_login: str | None = None, channel_type_other: str = "", link_type: str = "", dr_value: str = "", monthly_traffic: str = "") -> None:
     if adapter_config.strip():
         try:
             json.loads(adapter_config)
@@ -387,8 +414,6 @@ def apply_channel_form(channel: Channel, name: str, url: str, channel_type: str,
         raise HTTPException(422, "选择「其它」类型时必须填写自定义类型名称")
     channel.status = ChannelStatus(status)
     channel.requires_login = requires_login == "on"
-    channel.login_username = login_username.strip() or None
-    channel.login_password = login_password.strip() or None
     channel.link_type = LinkType(link_type) if link_type else None
     channel.dr_value = optional_positive_int(dr_value, "DR 数值")
     channel.monthly_traffic = optional_positive_int(monthly_traffic, "月度流量")
@@ -411,14 +436,12 @@ def channel_create(
     notes: Annotated[str, Form()] = "",
     requires_login: Annotated[str | None, Form()] = None,
     channel_type_other: Annotated[str, Form()] = "",
-    login_username: Annotated[str, Form()] = "",
-    login_password: Annotated[str, Form()] = "",
     link_type: Annotated[str, Form()] = "",
     dr_value: Annotated[str, Form()] = "",
     monthly_traffic: Annotated[str, Form()] = "",
 ):
     channel = Channel(name="", url="", channel_type=ChannelType.forum)
-    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, login_username, login_password, link_type, dr_value, monthly_traffic)
+    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, link_type, dr_value, monthly_traffic)
     reject_blacklisted_channel(db, channel)
     db.add(channel)
     db.commit()
@@ -461,11 +484,12 @@ def channel_update(
     notes: Annotated[str, Form()] = "",
     requires_login: Annotated[str | None, Form()] = None,
     channel_type_other: Annotated[str, Form()] = "",
-    login_username: Annotated[str, Form()] = "",
-    login_password: Annotated[str, Form()] = "",
+    link_type: Annotated[str, Form()] = "",
+    dr_value: Annotated[str, Form()] = "",
+    monthly_traffic: Annotated[str, Form()] = "",
 ):
     channel = get_or_404(db, Channel, channel_id)
-    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, login_username, login_password)
+    apply_channel_form(channel, name, url, channel_type, status, supports_automation, adapter_key, adapter_config, notes, requires_login, channel_type_other, link_type, dr_value, monthly_traffic)
     reject_blacklisted_channel(db, channel)
     db.commit()
     return redirect(f"/channels/{channel_id}", "渠道已更新")
@@ -621,9 +645,12 @@ def complete_submission_items(
             target_site_id=item.target_site_id,
             channel_id=batch.channel_id,
             actual_url=actual_url,
+            target_url=item.target_site.url,
             anchor_text=anchor_text.strip(),
             published_at=published_at,
+            first_seen_at=now_local(),
             method=PublishMethod.manual,
+            origin=BacklinkOrigin.batch,
             status=record_status,
         )
         db.add(record)
@@ -841,6 +868,7 @@ def records_list(
     channel_id: str = "",
     status: str = "",
     method: str = "",
+    origin: str = "",
 ):
     selected_site_id = optional_int(target_site_id, "目标网站")
     selected_channel_id = optional_int(channel_id, "外链渠道")
@@ -857,6 +885,8 @@ def records_list(
         stmt = stmt.where(BacklinkRecord.status == RecordStatus(status))
     if method:
         stmt = stmt.where(BacklinkRecord.method == PublishMethod(method))
+    if origin:
+        stmt = stmt.where(BacklinkRecord.origin == BacklinkOrigin(origin))
     stmt = stmt.order_by(BacklinkRecord.published_at.desc(), BacklinkRecord.id.desc())
     return render(
         request,
@@ -868,6 +898,7 @@ def records_list(
         selected_channel_id=selected_channel_id,
         selected_status=status,
         selected_method=method,
+        selected_origin=origin,
     )
 
 
@@ -911,19 +942,24 @@ def record_create(
     actual_url: Annotated[str, Form()],
     anchor_text: Annotated[str, Form()],
     published_at: Annotated[date, Form()],
-    method: Annotated[str, Form()],
     status: Annotated[str, Form()],
+    target_url: Annotated[str, Form()] = "",
+    link_rel: Annotated[str, Form()] = "",
 ):
-    get_or_404(db, TargetSite, target_site_id)
+    site = get_or_404(db, TargetSite, target_site_id)
     channel = get_or_404(db, Channel, channel_id)
     reject_blacklisted_channel(db, channel)
     db.add(BacklinkRecord(
         target_site_id=target_site_id,
         channel_id=channel_id,
         actual_url=actual_url.strip(),
+        target_url=target_url.strip() or site.url,
         anchor_text=anchor_text.strip(),
+        link_rel=encode_link_rel(link_rel),
         published_at=published_at,
-        method=PublishMethod(method),
+        first_seen_at=now_local(),
+        method=PublishMethod.manual,
+        origin=BacklinkOrigin.manual,
         status=RecordStatus(status),
     ))
     db.commit()
@@ -953,15 +989,19 @@ def record_update(
     actual_url: Annotated[str, Form()],
     anchor_text: Annotated[str, Form()],
     published_at: Annotated[date, Form()],
-    method: Annotated[str, Form()],
     status: Annotated[str, Form()],
+    target_url: Annotated[str, Form()] = "",
+    link_rel: Annotated[str, Form()] = "",
 ):
     record = get_or_404(db, BacklinkRecord, record_id)
     channel = get_or_404(db, Channel, channel_id)
     reject_blacklisted_channel(db, channel)
+    site = get_or_404(db, TargetSite, target_site_id)
     record.target_site_id, record.channel_id = target_site_id, channel_id
     record.actual_url, record.anchor_text, record.published_at = actual_url.strip(), anchor_text.strip(), published_at
-    record.method, record.status = PublishMethod(method), RecordStatus(status)
+    record.target_url = target_url.strip() or site.url
+    record.link_rel = encode_link_rel(link_rel)
+    record.status = RecordStatus(status)
     db.commit()
     return redirect("/records", "发布记录已更新")
 

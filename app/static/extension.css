@@ -1,0 +1,50 @@
+.status-published,
+.status-completed {
+  background: #e8f5ed;
+  color: #17643c;
+}
+
+.status-processing,
+.status-prepared,
+.status-submitted,
+.status-ready {
+  background: #eaf1ff;
+  color: #174ea6;
+}
+
+.status-removed,
+.status-skipped {
+  background: #f1f1f1;
+  color: #555;
+}
+
+.status-rejected {
+  background: #ffebe9;
+  color: #a52218;
+}
+
+.status-duplicate,
+.status-unknown {
+  background: #fff3d6;
+  color: #7a4b00;
+}
+
+.origin-extension_verified {
+  background: #e8f5ed;
+  color: #17643c;
+}
+
+.origin-automation {
+  background: #eaf1ff;
+  color: #174ea6;
+}
+
+.origin-batch {
+  background: #f1f1f1;
+  color: #555;
+}
+
+.origin-manual {
+  background: #fff3d6;
+  color: #7a4b00;
+}

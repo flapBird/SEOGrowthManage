@@ -69,6 +69,51 @@ def run_lightweight_migrations(target_engine) -> None:
                         text(f"ALTER TABLE target_sites ADD COLUMN {column_name} {column_type}")
                     )
 
+    if "submissions" in inspector.get_table_names():
+        submission_existing = {column["name"] for column in inspector.get_columns("submissions")}
+        if "backlink_record_id" not in submission_existing:
+            with target_engine.begin() as connection:
+                connection.execute(text("ALTER TABLE submissions ADD COLUMN backlink_record_id INTEGER"))
+            inspector.clear_cache()
+
+    if "backlink_records" in inspector.get_table_names():
+        record_existing = {column["name"] for column in inspector.get_columns("backlink_records")}
+        record_columns = {
+            "target_url": "VARCHAR(2048)",
+            "link_rel": "TEXT",
+            "first_seen_at": "DATETIME",
+            "last_verified_at": "DATETIME",
+            "origin": "VARCHAR(30)",
+        }
+        with target_engine.begin() as connection:
+            for column_name, column_type in record_columns.items():
+                if column_name not in record_existing:
+                    connection.execute(
+                        text(f"ALTER TABLE backlink_records ADD COLUMN {column_name} {column_type}")
+                    )
+            if "method" in record_existing:
+                connection.execute(text(
+                    "UPDATE backlink_records SET origin = 'automation' "
+                    "WHERE origin IS NULL AND method = 'auto'"
+                ))
+            connection.execute(text(
+                "UPDATE backlink_records SET origin = 'manual' WHERE origin IS NULL"
+            ))
+            inspector.clear_cache()
+            table_names = set(inspector.get_table_names())
+            if "submission_batch_items" in table_names:
+                connection.execute(text(
+                    "UPDATE backlink_records SET origin = 'batch' "
+                    "WHERE id IN (SELECT record_id FROM submission_batch_items WHERE record_id IS NOT NULL)"
+                ))
+            if "submissions" in table_names and "backlink_record_id" in {
+                column["name"] for column in inspector.get_columns("submissions")
+            }:
+                connection.execute(text(
+                    "UPDATE backlink_records SET origin = 'extension_verified' "
+                    "WHERE id IN (SELECT backlink_record_id FROM submissions WHERE backlink_record_id IS NOT NULL)"
+                ))
+
     if "channels" not in inspector.get_table_names():
         return
     existing = {column["name"] for column in inspector.get_columns("channels")}
@@ -77,10 +122,6 @@ def run_lightweight_migrations(target_engine) -> None:
             connection.execute(text("ALTER TABLE channels ADD COLUMN channel_type_other VARCHAR(80)"))
         if "requires_login" not in existing:
             connection.execute(text("ALTER TABLE channels ADD COLUMN requires_login BOOLEAN NOT NULL DEFAULT 0"))
-        if "login_username" not in existing:
-            connection.execute(text("ALTER TABLE channels ADD COLUMN login_username VARCHAR(255)"))
-        if "login_password" not in existing:
-            connection.execute(text("ALTER TABLE channels ADD COLUMN login_password VARCHAR(255)"))
         if "link_type" not in existing:
             connection.execute(text("ALTER TABLE channels ADD COLUMN link_type VARCHAR(8)"))
         if "dr_value" not in existing:
@@ -116,3 +157,75 @@ def run_lightweight_migrations(target_engine) -> None:
             # 存量来源此前已经抓过、已有指纹数据，标记为已基准化，下次抓取照常增量计新增；
             # 只有此后新增的来源才从 False 起步、首次抓取建基线。
             connection.execute(text("UPDATE keyword_sources SET is_initialized = 1"))
+
+
+def migrate_legacy_channel_credentials(target_engine) -> int:
+    """把旧 channels 明文账号密码迁入 ChannelCredential，并清空明文列。"""
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(target_engine)
+    tables = set(inspector.get_table_names())
+    if "channels" not in tables or "channel_credentials" not in tables:
+        return 0
+    channel_columns = {column["name"] for column in inspector.get_columns("channels")}
+    if not {"login_username", "login_password"} <= channel_columns:
+        return 0
+
+    from .models import now_local
+    from .security import CredentialCipher
+
+    cipher = CredentialCipher()
+    migrated = 0
+    with target_engine.begin() as connection:
+        legacy_rows = connection.execute(text(
+            "SELECT id, login_username, login_password FROM channels "
+            "WHERE login_username IS NOT NULL OR login_password IS NOT NULL"
+        )).mappings().all()
+        for row in legacy_rows:
+            existing = connection.execute(
+                text(
+                    "SELECT id, username, encrypted_password FROM channel_credentials "
+                    "WHERE channel_id = :channel_id"
+                ),
+                {"channel_id": row["id"]},
+            ).mappings().first()
+            username = (row["login_username"] or "").strip() or None
+            password = row["login_password"] or None
+            encrypted_password = cipher.encrypt(password) if password else None
+            if existing:
+                connection.execute(
+                    text(
+                        "UPDATE channel_credentials SET "
+                        "username = COALESCE(username, :username), "
+                        "encrypted_password = COALESCE(encrypted_password, :encrypted_password), "
+                        "updated_at = :updated_at WHERE id = :credential_id"
+                    ),
+                    {
+                        "username": username,
+                        "encrypted_password": encrypted_password,
+                        "updated_at": now_local().isoformat(),
+                        "credential_id": existing["id"],
+                    },
+                )
+            else:
+                connection.execute(
+                    text(
+                        "INSERT INTO channel_credentials "
+                        "(channel_id, username, encrypted_password, encrypted_extra_fields, updated_at) "
+                        "VALUES (:channel_id, :username, :encrypted_password, NULL, :updated_at)"
+                    ),
+                    {
+                        "channel_id": row["id"],
+                        "username": username,
+                        "encrypted_password": encrypted_password,
+                        "updated_at": now_local().isoformat(),
+                    },
+                )
+            connection.execute(
+                text(
+                    "UPDATE channels SET login_username = NULL, login_password = NULL WHERE id = :channel_id"
+                ),
+                {"channel_id": row["id"]},
+            )
+            migrated += 1
+    return migrated

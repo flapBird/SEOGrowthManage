@@ -1,11 +1,14 @@
 import asyncio
 from datetime import date
 
-from app.database import SessionLocal
+from sqlalchemy import create_engine, text
+
+from app.database import SessionLocal, migrate_legacy_channel_credentials
 from app.automation.base import SubmissionResult
 from app.automation.engine import execute_task
 from app.models import (
     AutomationTask,
+    BacklinkOrigin,
     BacklinkRecord,
     Channel,
     ChannelBlacklist,
@@ -26,6 +29,63 @@ def test_protected_pages_redirect_to_login(client):
     response = client.get("/channels", follow_redirects=False)
     assert response.status_code == 303
     assert response.headers["location"].startswith("/login")
+
+
+def test_legacy_plaintext_channel_credentials_are_encrypted_and_cleared(tmp_path):
+    legacy_engine = create_engine(f"sqlite:///{tmp_path / 'legacy-credentials.db'}")
+    with legacy_engine.begin() as connection:
+        connection.execute(text(
+            "CREATE TABLE channels (id INTEGER PRIMARY KEY, login_username VARCHAR(255), login_password VARCHAR(255))"
+        ))
+        connection.execute(text(
+            "CREATE TABLE channel_credentials ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, channel_id INTEGER UNIQUE NOT NULL, "
+            "username VARCHAR(255), encrypted_password TEXT, encrypted_extra_fields TEXT, updated_at DATETIME NOT NULL)"
+        ))
+        connection.execute(
+            text("INSERT INTO channels (id, login_username, login_password) VALUES (1, :username, :password)"),
+            {"username": "legacy-user", "password": "legacy-plain-secret"},
+        )
+        connection.execute(
+            text("INSERT INTO channels (id, login_username, login_password) VALUES (2, :username, :password)"),
+            {"username": "stale-user", "password": "stale-secret"},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO channel_credentials "
+                "(channel_id, username, encrypted_password, encrypted_extra_fields, updated_at) "
+                "VALUES (2, :username, :password, NULL, :updated_at)"
+            ),
+            {
+                "username": "current-user",
+                "password": CredentialCipher().encrypt("current-secret"),
+                "updated_at": "2026-09-02T10:00:00",
+            },
+        )
+
+    assert migrate_legacy_channel_credentials(legacy_engine) == 2
+    with legacy_engine.connect() as connection:
+        channel = connection.execute(text(
+            "SELECT login_username, login_password FROM channels WHERE id = 1"
+        )).mappings().one()
+        credential = connection.execute(text(
+            "SELECT username, encrypted_password FROM channel_credentials WHERE channel_id = 1"
+        )).mappings().one()
+        existing_credential = connection.execute(text(
+            "SELECT username, encrypted_password FROM channel_credentials WHERE channel_id = 2"
+        )).mappings().one()
+        remaining_plaintext = connection.execute(text(
+            "SELECT COUNT(*) FROM channels WHERE login_username IS NOT NULL OR login_password IS NOT NULL"
+        )).scalar_one()
+    assert channel["login_username"] is None
+    assert channel["login_password"] is None
+    assert credential["username"] == "legacy-user"
+    assert "legacy-plain-secret" not in credential["encrypted_password"]
+    assert CredentialCipher().decrypt(credential["encrypted_password"]) == "legacy-plain-secret"
+    assert existing_credential["username"] == "current-user"
+    assert CredentialCipher().decrypt(existing_credential["encrypted_password"]) == "current-secret"
+    assert remaining_plaintext == 0
+    assert migrate_legacy_channel_credentials(legacy_engine) == 0
 
 
 def test_login_crud_duplicate_warning_and_encrypted_credentials(authenticated_client):
@@ -74,6 +134,9 @@ def test_login_crud_duplicate_warning_and_encrypted_credentials(authenticated_cl
         assert "plain-secret" not in credential.encrypted_password
         assert CredentialCipher().decrypt(credential.encrypted_password) == "plain-secret"
         assert CredentialCipher().decrypt_json(credential.encrypted_extra_fields)["api_key"] == "api-secret"
+        record = db.query(BacklinkRecord).one()
+        assert record.origin == BacklinkOrigin.manual
+        assert record.target_url == "https://a.example"
     detail = client.get(f"/channels/{channel_id}")
     assert "plain-secret" not in detail.text
     assert "******" in detail.text
@@ -92,6 +155,7 @@ def test_query_dashboard_marks_auto_records(authenticated_client):
             anchor_text="锚文本",
             published_at=date.today(),
             method=PublishMethod.auto,
+            origin=BacklinkOrigin.automation,
             status=RecordStatus.live,
         ))
         db.commit()
@@ -105,7 +169,7 @@ def test_query_dashboard_marks_auto_records(authenticated_client):
 def test_empty_record_filters_do_not_raise_validation_error(authenticated_client):
     response = authenticated_client.get("/records?target_site_id=&channel_id=&status=&method=")
     assert response.status_code == 200
-    assert "外链发布记录" in response.text
+    assert "外链记录" in response.text
     assert authenticated_client.get("/records/duplicate-check?target_site_id=&channel_id=").status_code == 200
 
 
@@ -279,6 +343,7 @@ def test_submission_batch_can_immediately_create_multiple_records(authenticated_
         assert all(record.actual_url == "https://list.example/products" for record in records)
         assert all(record.status == RecordStatus.pending for record in records)
         assert all(record.method == PublishMethod.manual for record in records)
+        assert all(record.origin == BacklinkOrigin.batch for record in records)
 
 
 def test_automation_success_creates_auto_live_record(monkeypatch):
@@ -312,6 +377,7 @@ def test_automation_success_creates_auto_live_record(monkeypatch):
         record = db.query(BacklinkRecord).one()
         assert task.status == TaskStatus.success
         assert record.method == PublishMethod.auto
+        assert record.origin == BacklinkOrigin.automation
         assert record.status == RecordStatus.live
         assert record.actual_url.endswith("/published/42")
 
@@ -377,8 +443,6 @@ def test_channel_other_type_requires_login_and_validation(authenticated_client):
             "channel_type_other": "导航站",
             "status": "active",
             "requires_login": "on",
-            "login_username": "seo_user",
-            "login_password": "p@ss1234",
         },
         follow_redirects=False,
     )
@@ -388,15 +452,45 @@ def test_channel_other_type_requires_login_and_validation(authenticated_client):
         assert channel.channel_type == ChannelType.other
         assert channel.channel_type_other == "导航站"
         assert channel.requires_login is True
-        assert channel.login_username == "seo_user"
-        assert channel.login_password == "p@ss1234"
+        assert channel.credential is None
         channel_id = channel.id
+    client.post(
+        f"/channels/{channel_id}/credential",
+        data={"username": "seo_user", "password": "p@ss1234", "api_key": ""},
+    )
+    with SessionLocal() as db:
+        credential = db.query(ChannelCredential).filter_by(channel_id=channel_id).one()
+        assert credential.username == "seo_user"
+        assert CredentialCipher().decrypt(credential.encrypted_password) == "p@ss1234"
+    update = client.post(
+        f"/channels/{channel_id}",
+        data={
+            "name": "导航站",
+            "url": "https://nav.example",
+            "channel_type": "other",
+            "channel_type_other": "导航站",
+            "status": "active",
+            "requires_login": "on",
+            "link_type": "nofollow",
+            "dr_value": "42",
+            "monthly_traffic": "1234",
+        },
+        follow_redirects=False,
+    )
+    assert update.status_code == 303
+    with SessionLocal() as db:
+        channel = db.get(Channel, channel_id)
+        assert channel.link_type.value == "nofollow"
+        assert channel.dr_value == 42
+        assert channel.monthly_traffic == 1234
+        assert CredentialCipher().decrypt(channel.credential.encrypted_password) == "p@ss1234"
     # 详情页和列表页应展示自定义类型与需登录标记
     detail = client.get(f"/channels/{channel_id}")
     assert "导航站" in detail.text
     assert "需要登录" in detail.text
     assert "seo_user" in detail.text
-    assert "p@ss1234" in detail.text
+    assert "p@ss1234" not in detail.text
+    assert "已加密配置" in detail.text
     listing = client.get("/channels")
     assert "导航站" in listing.text
     assert "需登录" in listing.text

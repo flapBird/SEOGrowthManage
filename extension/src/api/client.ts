@@ -1,11 +1,15 @@
 import type {
   BacklinkTask,
+  BacklinkHistoryItem,
   CreateSubmissionInput,
   CreateVerificationInput,
   Project,
   Submission,
   SubmissionCheck,
   UpdateBacklinkTaskInput,
+  UpdateSubmissionInput,
+  Verification,
+  VerificationResult,
 } from "../types/domain";
 import type { ServerSettings } from "../storage/settings";
 
@@ -58,6 +62,13 @@ export class ApiClient {
     });
   }
 
+  updateSubmission(submissionId: number, input: UpdateSubmissionInput): Promise<Submission> {
+    return this.request<Submission>(`/api/v1/submissions/${submissionId}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  }
+
   checkSubmissions(projectId: number, sourceUrl: string): Promise<SubmissionCheck> {
     const query = new URLSearchParams({ projectId: String(projectId), sourceUrl });
     return this.request<SubmissionCheck>(`/api/v1/submissions/check?${query}`);
@@ -72,12 +83,28 @@ export class ApiClient {
     return this.request<Submission[]>(`/api/v1/submissions${suffix}`);
   }
 
-  createVerification(input: CreateVerificationInput): Promise<unknown> {
-    return this.request("/api/v1/verifications", {
+  verifications(filters: { submissionId?: number; limit?: number } = {}): Promise<Verification[]> {
+    const query = new URLSearchParams();
+    if (filters.submissionId) query.set("submissionId", String(filters.submissionId));
+    if (filters.limit) query.set("limit", String(filters.limit));
+    const suffix = query.size ? `?${query}` : "";
+    return this.request<Verification[]>(`/api/v1/verifications${suffix}`);
+  }
+
+  createVerification(input: CreateVerificationInput): Promise<VerificationResult> {
+    return this.request<VerificationResult>("/api/v1/verifications", {
       method: "POST",
       headers: { "Idempotency-Key": crypto.randomUUID() },
       body: JSON.stringify(input),
     });
+  }
+
+  backlinks(filters: { projectId?: number; limit?: number } = {}): Promise<BacklinkHistoryItem[]> {
+    const query = new URLSearchParams();
+    if (filters.projectId) query.set("projectId", String(filters.projectId));
+    if (filters.limit) query.set("limit", String(filters.limit));
+    const suffix = query.size ? `?${query}` : "";
+    return this.request<BacklinkHistoryItem[]>(`/api/v1/backlinks/history${suffix}`);
   }
 
   private async request<T>(path: string, init: RequestInit = {}): Promise<T> {

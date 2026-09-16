@@ -1,0 +1,2659 @@
+[
+ {
+  "domain": "toolify.ai",
+  "name": "Toolify",
+  "votes": 38,
+  "aliases": [
+   "https://www.toolify.ai/new",
+   "Toolify",
+   "Toolify 排行榜",
+   "https://www.toolify.ai/Best-AI-Tools-revenue",
+   "Tollify",
+   "https://www.toolify.ai/zh/new"
+  ],
+  "methods": [
+   {
+    "who": "Knight",
+    "note": "观察today新的工具站，结合google趋势查看"
+   },
+   {
+    "who": "逆熵而行",
+    "note": "通过付费榜单以及上线时间，找需求"
+   },
+   {
+    "who": "击石",
+    "note": "看看别人在给什么网站花钱"
+   },
+   {
+    "who": "麦塔",
+    "note": "找对标网站，特别关注流量榜和收入榜单"
+   },
+   {
+    "who": "祥子",
+    "note": "看流量榜、分类排名与竞品趋势"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看月度榜单、增长榜、新入榜网站和不同AI产品分类，重点筛选上个月还没有进入榜单、这个月却突然获得大量流量的黑马产品。然后分析它的核心功能、主要付费点、流量来源和来源国家，寻找可以垂直化或本地化的机会。"
+   },
+   {
+    "who": "低位",
+    "note": "查看新增网站，掌握最新AI动向"
+   },
+   {
+    "who": "向左",
+    "note": "查看最新的赚钱网站，尤其是工具站的流行趋势"
+   },
+   {
+    "who": "雪驹",
+    "note": "1、找最新上线的网站，看TDK插件里显示流量有进步的。2：看月度排行，找那种增长比较高的，或者增长率比较高的"
+   },
+   {
+    "who": "召唤兽",
+    "note": "ai 工具站发掘需求"
+   },
+   {
+    "who": "金玄宇",
+    "note": "新词上站，首选推广平台，反向知道新词"
+   },
+   {
+    "who": "jony",
+    "note": "用来挖赛道、找竞品、看关键词和流量入口。看到突然冒出来的产品，可以顺藤摸瓜研究它是怎么做起来的。"
+   },
+   {
+    "who": "祝sheng",
+    "note": "看看哪些产品品类赚钱的天花板高"
+   },
+   {
+    "who": "言",
+    "note": "看收入榜单，尤其是新出现的。"
+   },
+   {
+    "who": "nicklos",
+    "note": "看哪些项目最近正在赚钱"
+   },
+   {
+    "who": "曦演",
+    "note": "看一些新上榜的产品，挖掘需求"
+   },
+   {
+    "who": "Dawn",
+    "note": "通过榜单找热门需求和产品"
+   },
+   {
+    "who": "日出东方",
+    "note": "ai项目"
+   },
+   {
+    "who": "柚子",
+    "note": "看新上网站，看高付费网站"
+   },
+   {
+    "who": "陈列",
+    "note": "主要看新站，流量高的站，收入排行榜等页面"
+   },
+   {
+    "who": "山茶",
+    "note": "可以帮我们找到“已经有人做”的需求，可以从里面判断哪些产品有变现可能；看的时候先看类目，再看增长，然后再去google验证"
+   },
+   {
+    "who": "金智",
+    "note": "看榜单"
+   },
+   {
+    "who": "绍清",
+    "note": "可以看新提交的正在赚钱的有哪些"
+   },
+   {
+    "who": "国际范～",
+    "note": "榜单很方便查阅"
+   }
+  ]
+ },
+ {
+  "domain": "reddit.com",
+  "name": "Reddit",
+  "votes": 28,
+  "aliases": [
+   "https://www.reddit.com/r/popular/",
+   "Reddit",
+   "Reddit（reddit.com）"
+  ],
+  "methods": [
+   {
+    "who": "击石",
+    "note": "reddit 当前流行的"
+   },
+   {
+    "who": "阿明",
+    "note": "用户会主动暴露现有工具、网站不好的地方。正好是我们的机会"
+   },
+   {
+    "who": "麦塔",
+    "note": "在垂直领域的 subreddit 里面，通过关键词搜索帖子挖掘需求"
+   },
+   {
+    "who": "祥子",
+    "note": "看细分社区、求助帖与负面评论"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看垂直 Subreddit 的 New、Top、求推荐帖、吐槽帖和评论区，重点搜索“有没有这样的工具”“现有产品太贵或不好用”“如何完成某件事”等内容。同一个问题被不同用户反复提出，通常代表真实、持续且尚未被很好满足的需求。"
+   },
+   {
+    "who": "谈小罗🌟",
+    "note": "这个是国外的一个大的类似于贴吧的社区，有很多板块"
+   },
+   {
+    "who": "江城子",
+    "note": "中国版本的贴吧和知乎"
+   },
+   {
+    "who": "向左",
+    "note": "关注平台上讨论的热门话题"
+   },
+   {
+    "who": "言",
+    "note": "找大家正在烦恼、待解决、在抱怨的问题，真实用户的需求"
+   },
+   {
+    "who": "日出东方",
+    "note": "从用户回帖中发掘痛点需求"
+   },
+   {
+    "who": "陈列",
+    "note": "逛一逛r/SaaS，r/Entrepreneur，r/SideProject这些板块"
+   },
+   {
+    "who": "国际范～",
+    "note": "看垂直 Subreddit 的帖子和评论，重点找抱怨、求助、找替代品、重复工作和“有没有工具能……”这类需求"
+   },
+   {
+    "who": "山茶",
+    "note": "r/SaaS、r/Entrepreneur、r/smallbusiness 板块里面经常会有人抱怨某些软件的功能使用"
+   },
+   {
+    "who": "金智",
+    "note": "用户表达最直接，特别适合找真实痛点、替代品需求和抱怨"
+   },
+   {
+    "who": "随便",
+    "note": "适合验证需求"
+   }
+  ]
+ },
+ {
+  "domain": "trends.google.com",
+  "name": "谷歌趋势",
+  "votes": 27,
+  "aliases": [
+   "https://trends.google.com/trends/",
+   "https://trends.google.com/trends/?geo=US",
+   "https://trends.google.com/trending",
+   "Google Trends",
+   "Google Trends（trends.google.com）"
+  ],
+  "methods": [
+   {
+    "who": "Knight",
+    "note": "google趋势，挖掘新词最有效、最权威"
+   },
+   {
+    "who": "逆熵而行",
+    "note": "google trends，可以分析关键词，现在还有AI推荐相关关键词也很好用。"
+   },
+   {
+    "who": "转角喻到 AI",
+    "note": "看“时下流行”"
+   },
+   {
+    "who": "藤井树",
+    "note": "官方数据，适合起词和看大盘"
+   },
+   {
+    "who": "麦塔",
+    "note": "做新词必备，用词根拓展新词"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看过去7天、30天和90天的飙升查询、相关查询、相关主题、地区分布和趋势对比。它既能发现刚开始增长的新词，也能判断一个需求是长期上涨、周期性需求还是短期热点，避免误做季节词和昙花一现的关键词。"
+   },
+   {
+    "who": "低位",
+    "note": "每天查看最新谷歌趋势，筛选自己领域内的新词"
+   },
+   {
+    "who": "向左",
+    "note": "需求最准"
+   },
+   {
+    "who": "召唤兽",
+    "note": "谷歌趋势，看新词必备"
+   },
+   {
+    "who": "金玄宇",
+    "note": "看趋势，新词"
+   },
+   {
+    "who": "言",
+    "note": "谷歌趋势挖新词"
+   },
+   {
+    "who": "Dawn",
+    "note": "通过谷歌趋势找词"
+   },
+   {
+    "who": "Mushan",
+    "note": "趋势曲线"
+   },
+   {
+    "who": "nicklos",
+    "note": "得到一个热词后，通过explore去查看Rising queries的词"
+   },
+   {
+    "who": "柚子",
+    "note": "找新词"
+   },
+   {
+    "who": "陈列",
+    "note": "哥飞整理过51个高频需求词根，用这些到Google Trends上刷"
+   },
+   {
+    "who": "国际范～",
+    "note": "看关键词和产品需求的增长趋势，判断一个需求是在上升、稳定还是已经过气"
+   },
+   {
+    "who": "金智",
+    "note": "判断关键词是不是增长趋势，而不只是偶发热度"
+   }
+  ]
+ },
+ {
+  "domain": "producthunt.com",
+  "name": "Product Hunt",
+  "votes": 25,
+  "aliases": [
+   "Product Hunt",
+   "productHunt",
+   "Product Hunt（producthunt.com）"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看新品榜单、评论区与用户反馈"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看每日榜、每周榜、新发布产品、评论区和 Maker 回复。榜单可以验证某个产品方向是否受到关注，评论里的功能请求、使用障碍、定价抱怨和“能否支持某个场景”，经常可以拆成一个更聚焦、更简单的新产品。"
+   },
+   {
+    "who": "低位",
+    "note": "查看新增网站，掌握最新网站动向"
+   },
+   {
+    "who": "谈小罗🌟",
+    "note": "这个就是很多开发者会在上面提交后，可以去在上面找灵感"
+   },
+   {
+    "who": "江城子",
+    "note": "producthunt包含各种产品发布"
+   },
+   {
+    "who": "向左",
+    "note": "通过日榜、周榜和月榜，研究最近受欢迎的产品内容并挖掘关键词。"
+   },
+   {
+    "who": "雪驹",
+    "note": "即可以找需求，也可以找工具"
+   },
+   {
+    "who": "召唤兽",
+    "note": "各种产品，发掘需求"
+   },
+   {
+    "who": "曦演",
+    "note": "看一些新发布的产品，然后分析没满足的需求"
+   },
+   {
+    "who": "日出东方",
+    "note": "最知名的新项目发布平台"
+   },
+   {
+    "who": "柚子",
+    "note": "看别人在做什么"
+   },
+   {
+    "who": "国际范～",
+    "note": "看每天的新产品、热门榜和评论区，适合发现新赛道、产品趋势以及用户继续提出的需求"
+   },
+   {
+    "who": "冬天的雨",
+    "note": "发现风向的地方。"
+   },
+   {
+    "who": "金智",
+    "note": "新产品 Launch、评论、Discussion"
+   }
+  ]
+ },
+ {
+  "domain": "similarweb.com",
+  "name": "Similarweb",
+  "votes": 20,
+  "aliases": [
+   "通过 Similarweb 中的网站关键词看vercel.app 中自然流量的排行找关键词(筛选新点击量)，然后到 go",
+   "similarweb",
+   "Similarweb",
+   "similar",
+   "SimilarWeb 关键词研究 - 关键词页面",
+   "SimilarWeb关键词生成器"
+  ],
+  "methods": [
+   {
+    "who": "Knight",
+    "note": "通过关键词研究工具查看dr值小的"
+   },
+   {
+    "who": "转角喻到 AI",
+    "note": "主要使用“关键词生成器，着陆页”来找新词"
+   },
+   {
+    "who": "longPc",
+    "note": "有概率找到的词是人家开源的，拿着开源代码在使劲一改，做做seo，买个关键词域名。就是竞争有点激烈"
+   },
+   {
+    "who": "藤井树",
+    "note": "市场视角，可以查到一些子站"
+   },
+   {
+    "who": "麦塔",
+    "note": "挖掘关键词数据,特别是用来挖掘内页需求"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看最近28天和最近3个月流量快速增长的网站，以及它们的自然搜索落地页、新增关键词、来源国家、社交流量、引荐流量和出站网站。尤其关注注册时间较短却突然起量的新站，再反查它依靠什么关键词、页面和渠道获得增长。"
+   },
+   {
+    "who": "颜飞",
+    "note": "简单粗暴且直接，除了找新词之外，还可以找那些已经被验证流量的关键词做成的网站，然后在短期内超过他们"
+   },
+   {
+    "who": "nicklos",
+    "note": "按哥飞老师教程里，找落地页里的好项目"
+   },
+   {
+    "who": "Dawn",
+    "note": "站找词，词找站，站找站，词找词；看入口链接找付费网站等等"
+   },
+   {
+    "who": "陈列",
+    "note": "关注大站靠一个内页就拿走很多流量的词——既然别人一个内页都能排上去，做一个专门网站去打，胜算就高得多"
+   },
+   {
+    "who": "陈列",
+    "note": "类似Semrush关键词魔法工具，输入词根后可以根据KD和CPC筛选，然后结合谷歌趋势查看是否是新词"
+   },
+   {
+    "who": "跳高高",
+    "note": "付费网站看外链"
+   },
+   {
+    "who": "金智",
+    "note": "适合判断竞品主要流量来源和哪些站增长快"
+   },
+   {
+    "who": "国际范～",
+    "note": "研究关键词必备工具"
+   }
+  ]
+ },
+ {
+  "domain": "x.com",
+  "name": "X (formerly Twitter)",
+  "votes": 19,
+  "aliases": [
+   "Twitter",
+   "X(推特)",
+   "刷X",
+   "Twitter（x.com）",
+   "x 推特"
+  ],
+  "methods": [
+   {
+    "who": "逆熵而行",
+    "note": "有很多大v，会发布最新的一些消息，可以观察，然后找找是否可以做的需求"
+   },
+   {
+    "who": "阿明",
+    "note": "结合 https://github.com/qiayue/Twitter-Trend-Radar，实时扫描推特上「带链接 + 高互动」的推文，反查链接域名的注册时间和近三月流量， 帮你在 Google Trends 还没反应过来之前，发现正在发酵的新产品、新工具、新站。"
+   },
+   {
+    "who": "沐珈",
+    "note": "海外开发者圈容易突出火起来一些产品，比如最新的outbit"
+   },
+   {
+    "who": "麦塔",
+    "note": "做新词、新模型、新热点网站必备,关注大V"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看行业 KOL、关注列表、过去24小时高互动帖子、引用评论和回复区，并使用高级搜索筛选新模型、新产品、求推荐和抱怨类内容。很多新概念会先在 X 上传播，等关键词工具显示明显搜索量时，竞争通常已经开始增加。"
+   },
+   {
+    "who": "谈小罗🌟",
+    "note": "这个主要是来找新词的，聚焦 AI 工具、游戏站领域"
+   },
+   {
+    "who": "江城子",
+    "note": "很多信息最早都是从x上出现的"
+   },
+   {
+    "who": "向左",
+    "note": "关注平台上讨论的热门话题，寻找最近最赚钱的网站和新趋势，挖掘关键词及主要功能。"
+   },
+   {
+    "who": "nicklos",
+    "note": "关注一些垂直领域的博主，看最新的爆点(但我还没有跟上过)"
+   },
+   {
+    "who": "国际范～",
+    "note": "看目标用户、竞品和行业 KOL 的动态及回复区，适合发现实时痛点、新趋势、求推荐和替代方案。"
+   },
+   {
+    "who": "冬天的雨",
+    "note": "能做成功的产品往往来自你熟悉和关注的领域"
+   },
+   {
+    "who": "金智",
+    "note": "趋势出现得快，适合找最新 AI 工具需求"
+   },
+   {
+    "who": "Geektao",
+    "note": "评论区找需求"
+   }
+  ]
+ },
+ {
+  "domain": "theresanaiforthat.com",
+  "name": "There's An AI For That",
+  "votes": 15,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "Knight",
+    "note": "today新的工具站，结合google趋势查看"
+   },
+   {
+    "who": "山南见曦",
+    "note": "分析它高流量的内页，然后去挖掘就是高流量的新词。"
+   },
+   {
+    "who": "麦塔",
+    "note": "找对标网站，特别关注流量榜和收入榜单"
+   },
+   {
+    "who": "祥子",
+    "note": "看工具分类、热度排行与用户评价"
+   },
+   {
+    "who": "雪驹",
+    "note": "这里的网站质量都比较高，但是大部分不是关键词作为域名，需求比较发散。"
+   },
+   {
+    "who": "jony",
+    "note": "看 AI 新产品和榜单，重点不是抄产品，而是研究什么需求正在起来、别人为什么能拿到流量。"
+   },
+   {
+    "who": "言",
+    "note": "可以看到新上线的产品，拓展思维，找新需求"
+   },
+   {
+    "who": "金智",
+    "note": "适合看用户都在找“用 AI 做什么”"
+   },
+   {
+    "who": "国际范～",
+    "note": "很全"
+   }
+  ]
+ },
+ {
+  "domain": "semrush.com",
+  "name": "Semrush",
+  "votes": 15,
+  "aliases": [
+   "semrush",
+   "semrush的关键词魔法工具",
+   "semrush的关键词研究-落地页找词",
+   "Semrush关键词魔法工具"
+  ],
+  "methods": [
+   {
+    "who": "国际范～",
+    "note": "可以参考"
+   },
+   {
+    "who": "逆熵而行",
+    "note": "使用AI，通过词根，批量找"
+   },
+   {
+    "who": "藤井树",
+    "note": "词库大，关键词、竞品、差距分析"
+   },
+   {
+    "who": "麦塔",
+    "note": "挖掘关键词数据,特别是用来挖掘内页需求"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看 Organic Research、Pages、Position Changes、Keyword Gap 和 Backlink Analytics。重点筛选近期新增流量的落地页、排名突然上涨的关键词和新出现的出站域名，再结合域名注册时间判断是否属于新需求，从成熟社区和大型网站中反推出正在增长的新站和新词。"
+   },
+   {
+    "who": "颜飞",
+    "note": "简单粗暴且直接，除了找新词之外，还可以找那些已经被验证流量的关键词做成的网站，然后在短期内超过他们"
+   },
+   {
+    "who": "向左",
+    "note": "可以找到更多相关搜索的关键词"
+   },
+   {
+    "who": "向左",
+    "note": "托管平台的二级域名（如 vercel.app、js.org、netlify.app、github.io）往往能带来大量流量"
+   },
+   {
+    "who": "nicklos",
+    "note": "输入词根去查证KD低有一定搜索量的词，不过数据可能滞后"
+   },
+   {
+    "who": "柚子",
+    "note": "看关键词魔法工具，看域名概览"
+   },
+   {
+    "who": "陈列",
+    "note": "输入词根 → 筛选搜索量 ≥ 30000/月、KD ≤ 60、CPC > 0.01 的词，就能得到一个候选关键词列表，然后结合谷歌趋势判断哪些是新词。"
+   },
+   {
+    "who": "金智",
+    "note": "适合系统分析竞品在吃哪些关键词和页面流量"
+   }
+  ]
+ },
+ {
+  "domain": "trustmrr.com",
+  "name": "TrustMRR",
+  "votes": 13,
+  "aliases": [
+   "TrustMRR"
+  ],
+  "methods": [
+   {
+    "who": "沐珈",
+    "note": "看看别人真实的收入，对要做的需求会更有指导，我一般会搜索关键词来找，但也可以浏览他网站的陈列"
+   },
+   {
+    "who": "祝sheng",
+    "note": "看看哪些产品在赚钱"
+   },
+   {
+    "who": "言",
+    "note": "这个里面也是已经验证收入的产品，可以看到哪些需求正在赚钱。"
+   },
+   {
+    "who": "日出东方",
+    "note": "最新的saas项目"
+   },
+   {
+    "who": "陈列",
+    "note": "SaaS 赚钱榜单，看当前那些网站在赚钱"
+   },
+   {
+    "who": "山茶",
+    "note": "有真实收入数据做支撑，可以发现项目和需求验证"
+   },
+   {
+    "who": "绍清",
+    "note": "公开收入，可以看看哪些方向上订阅水平如何"
+   },
+   {
+    "who": "国际范～",
+    "note": "最真实的赚钱榜单很不错"
+   }
+  ]
+ },
+ {
+  "domain": "github.com",
+  "name": "GitHub",
+  "votes": 12,
+  "aliases": [
+   "GitHub",
+   "GitHub",
+   "GitHub",
+   "GitHub（github.com）"
+  ],
+  "methods": [
+   {
+    "who": "沐珈",
+    "note": "这个仓库其实也可以当作外链，提交过的话别人发的也会推送给你，当作获取中文开发者圈正在开发什么的一个信息来源"
+   },
+   {
+    "who": "麦塔",
+    "note": "关注热点项目,验证需求"
+   },
+   {
+    "who": "祥子",
+    "note": "看趋势仓库、问题区与功能请求"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看 GitHub Trending、新仓库、新增 Star 速度、Topics、Issues 和 Discussions。快速上涨的开源项目通常代表一种新能力，而 Issues 中被反复提出的安装困难、配置问题和功能缺失，则可能被包装成更易用的网页工具、API或开发者产品。"
+   },
+   {
+    "who": "江城子",
+    "note": "很多需求优先会发布一个开源版本"
+   },
+   {
+    "who": "nicklos",
+    "note": "看有哪些新项目值得一试"
+   },
+   {
+    "who": "曦演",
+    "note": "github trends中可以挖掘一些新项目"
+   },
+   {
+    "who": "陈列",
+    "note": "GitHub的热度trending仓库，可以找新词"
+   },
+   {
+    "who": "国际范～",
+    "note": "看热门项目的 Issues、Discussions 和 Feature Requests，开发者会非常具体地描述缺什么工具和功能。"
+   },
+   {
+    "who": "金智",
+    "note": "技术用户的需求非常具体，特别适合找 API、Agent、Workflow 需求"
+   }
+  ]
+ },
+ {
+  "domain": "news.ycombinator.com",
+  "name": "Hacker News",
+  "votes": 10,
+  "aliases": [
+   "Hacker News",
+   "Hacker News（news.ycombinator.com）"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看问答帖、新品帖与评论区争论"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看 Show HN、Ask HN、New 和评论区。这里聚集了大量开发者、创业者和早期产品用户，评论通常会直接指出产品价值、技术限制、替代方案、定价问题和真实使用场景，特别适合挖掘开发者工具、效率工具和B2B SaaS需求。"
+   },
+   {
+    "who": "国际范～",
+    "note": "重点看 Ask HN、Show HN 和评论区，适合发现开发者、创业者和技术团队的真实问题"
+   },
+   {
+    "who": "金智",
+    "note": "高质量技术用户较多，适合找新技术和工具缺口"
+   }
+  ]
+ },
+ {
+  "domain": "huggingface.co",
+  "name": "Hugging Face",
+  "votes": 10,
+  "aliases": [
+   "Hugging Face",
+   "Hugging Face"
+  ],
+  "methods": [
+   {
+    "who": "击石",
+    "note": "huggingface 流行的模型"
+   },
+   {
+    "who": "麦塔",
+    "note": "关注新模型发布"
+   },
+   {
+    "who": "祥子",
+    "note": "看热门模型、讨论区与应用趋势"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看应用分类榜、新发布应用、下载量、评分变化、低星评论和更新记录。特别关注操作简单、核心循环短、短期增长快的游戏和工具，再搜索“产品名 online”“产品名 browser”，判断用户是否存在PC端、网页版或免安装版本的需求。"
+   },
+   {
+    "who": "向左",
+    "note": "关注近期热门的 AI 模型，火起来的模型名称可能是一个潜力新词，适合做工具站。"
+   },
+   {
+    "who": "金玄宇",
+    "note": "新词，新模型，热门模型"
+   },
+   {
+    "who": "Mushan",
+    "note": "模型趋势"
+   },
+   {
+    "who": "金智",
+    "note": "适合发现新模型、新能力和技术趋势"
+   },
+   {
+    "who": "国际范～",
+    "note": "可以发现很多新模型，对蹭热词很有帮助"
+   }
+  ]
+ },
+ {
+  "domain": "indiehackers.com",
+  "name": "Indie Hackers",
+  "votes": 10,
+  "aliases": [
+   "Indie Hackers",
+   "IndieHackers",
+   "Indie Hackers（indiehackers.com）"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看产品复盘、创业提问与收入讨论"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看收入里程碑、Build in Public、增长复盘、失败复盘和评论区。这里不仅能看到产品做了什么，还能了解它如何获客、如何定价、用户为什么付费以及哪里做失败了；已经产生收入的产品，可以帮助验证需求和商业模式，而不只是验证流量。"
+   },
+   {
+    "who": "向左",
+    "note": "关注平台上讨论的热门话题，寻找最近最赚钱的网站和新趋势，挖掘关键词及主要功能。"
+   },
+   {
+    "who": "日出东方",
+    "note": "最新的项目"
+   },
+   {
+    "who": "国际范～",
+    "note": "看独立开发者的产品复盘、收入分享和评论，适合研究什么需求已经有人付费，以及他们如何获客。"
+   },
+   {
+    "who": "金智",
+    "note": "产品复盘帖、Revenue 帖、评论"
+   }
+  ]
+ },
+ {
+  "domain": "apps.apple.com",
+  "name": "Apple App Store",
+  "votes": 8,
+  "aliases": [
+   "App Store",
+   "Apple",
+   "Apple App Store",
+   "App Store"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看一二星评论、更新抱怨与功能请求"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看分类榜、热门免费榜、热门付费榜、新发布应用、搜索联想、低星评价和版本更新记录。快速上涨的应用可以验证用户需求，差评和评论中的功能请求可以发现产品缺口；部分移动端爆款还会产生“网页版”“在线版”或“无需下载版”的搜索需求。"
+   },
+   {
+    "who": "跳高高",
+    "note": "ios排行榜"
+   },
+   {
+    "who": "国际范～",
+    "note": "看热门 App 的低星评价和更新评论，寻找功能缺失、体验问题和用户反复抱怨的需求"
+   },
+   {
+    "who": "金智",
+    "note": "App 1–3 星评论、最新评论"
+   }
+  ]
+ },
+ {
+  "domain": "google.com",
+  "name": "Google",
+  "votes": 8,
+  "aliases": [
+   "Google"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看搜索框联想、People Also Ask、相关搜索、SERP 前三页、结果类型和页面更新时间。通过观察搜索结果是否答非所问、工具是否难用、内容是否过时，以及 intitle、allintitle 和新域名数量，可以同时判断搜索意图、竞争程度和结果缺口。"
+   },
+   {
+    "who": "Mushan",
+    "note": "搜索联想、搜索结果、竞争产品"
+   },
+   {
+    "who": "nicklos",
+    "note": "自己遇到问题时，进行google的时候可以关注一下人们还会怎么提问，会有新收获"
+   },
+   {
+    "who": "金智",
+    "note": "自动补全、People Also Ask、相关搜索"
+   },
+   {
+    "who": "国际范～",
+    "note": "大盘查拓展很方便"
+   }
+  ]
+ },
+ {
+  "domain": "g2.com",
+  "name": "G2",
+  "votes": 6,
+  "aliases": [
+   "G2",
+   "G2（g2.com）"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看同类软件差评、缺点与替代诉求"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看成熟软件的1至3星评价、Most Mentioned Cons、产品对比页和 Alternatives 页面。用户已经付费或真实使用过产品，却仍反复抱怨价格高、操作复杂、缺少某个功能，说明需求和付费意愿都存在，适合做更简单、更便宜或更垂直的替代品。"
+   },
+   {
+    "who": "Mushan",
+    "note": "1–3 星差评"
+   },
+   {
+    "who": "国际范～",
+    "note": "看竞品 2–4 星评价里的 Cons / Dislike，特别适合找 SaaS 已验证市场中的产品缺口。"
+   },
+   {
+    "who": "金智",
+    "note": "SaaS 用户评价质量高，特别适合挖竞品缺点。竞品 1–3 星评论、Cons、Most Helpful Reviews"
+   }
+  ]
+ },
+ {
+  "domain": "tiktok.com",
+  "name": "Tiktok",
+  "votes": 5,
+  "aliases": [
+   "TikTok"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看搜索联想、热门标签、最近7天播放量快速上涨的视频和评论区。重点寻找用户大量询问“这是什么工具”“在哪里可以使用”“有没有网页版”的内容，以及突然流行的AI玩法、滤镜、模板和小游戏，这些通常会继续形成搜索需求。"
+   },
+   {
+    "who": "金智",
+    "note": "对 AI 视频、AI 图片、UGC、短视频需求尤其有价值"
+   }
+  ]
+ },
+ {
+  "domain": "chromewebstore.google.com",
+  "name": "Chrome 插件商店",
+  "votes": 5,
+  "aliases": [
+   "Chrome Web Store"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看插件榜单、差评与功能请求"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看热门扩展、新发布扩展、安装量、评分和低星评论。浏览器插件天然解决高频小问题，如果一个插件用户量大但体验差、更新慢，就可能存在开发更好的独立工具或SaaS机会。"
+   },
+   {
+    "who": "Mushan",
+    "note": "插件评论、低星评价、同类插件"
+   },
+   {
+    "who": "国际范～",
+    "note": "看同类插件的差评和评论，特别容易找到“小而明确”、适合独立开发者快速实现的需求"
+   },
+   {
+    "who": "金智",
+    "note": "Extensions Reviews、低评分、Feature Request"
+   }
+  ]
+ },
+ {
+  "domain": "steamdb.info",
+  "name": "steamdb.info",
+  "votes": 5,
+  "aliases": [
+   "SteamDB"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看新游戏、玩家在线人数变化、Trending、Upcoming Releases、标签和更新记录。游戏热度变化通常早于搜索量爆发，可以提前布局游戏攻略、Wiki、角色介绍、道具数据库和辅助工具。"
+   },
+   {
+    "who": "nicklos",
+    "note": "看wishlist人多或者follow人多的游戏"
+   },
+   {
+    "who": "陈列",
+    "note": "从Trending Games可以看新游戏热度"
+   }
+  ]
+ },
+ {
+  "domain": "betalist.com",
+  "name": "https://betalist.com/",
+  "votes": 5,
+  "aliases": [
+   "BetaList"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看每日发布的新产品、分类趋势、早期用户反馈和创业者介绍。相比成熟产品榜单，BetaList 更容易发现还没有形成竞争的新需求，可以提前分析产品定位、关键词和增长渠道。"
+   },
+   {
+    "who": "日出东方",
+    "note": "最新的项目"
+   },
+   {
+    "who": "金智",
+    "note": "早期产品集中，适合发现还没完全卷起来的新方向"
+   }
+  ]
+ },
+ {
+  "domain": "ahrefs.com",
+  "name": "Ahrefs",
+  "votes": 5,
+  "aliases": [
+   "Ahrefs",
+   "Ahrefs"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看竞品的 Top Pages、New Keywords、Content Gap、新增外链和新出现的 Referring Domains。通过页面流量变化，可以找到竞品最近刚获得流量的新需求；通过内容缺口和低竞争关键词，则可以判断哪些词值得单独做页面，甚至举全站之力做一个垂直网站。"
+   },
+   {
+    "who": "金智",
+    "note": "非常适合做 SEO 型需求挖掘和竞品流量反推"
+   }
+  ]
+ },
+ {
+  "domain": "v2ex.com",
+  "name": "V2EX",
+  "votes": 4,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看问与答、分享创造及产品吐槽"
+   },
+   {
+    "who": "谈小罗🌟",
+    "note": "虽然最近质量下降了，但是在分享创作还是有不少人去分享他们的好产品"
+   },
+   {
+    "who": "jony",
+    "note": "看技术人最近在做什么、讨论什么，尤其适合观察独立开发者怎么找需求、做产品、搞商业化。"
+   }
+  ]
+ },
+ {
+  "domain": "alternativeto.net",
+  "name": "alternativeto.net",
+  "votes": 4,
+  "aliases": [
+   "AlternativeTo"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看替代方案评论、缺失功能与抱怨"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看热门软件的 Alternatives 页面、用户点赞数量、评论内容和替代原因。用户主动寻找替代品时，通常已经有明确需求和使用场景，可以从“太贵”“太复杂”“缺少某功能”等痛点中发现更垂直、更简单、更便宜的新产品机会。"
+   },
+   {
+    "who": "金智",
+    "note": "特别适合找“替代品需求”"
+   }
+  ]
+ },
+ {
+  "domain": "traffic.cv",
+  "name": "Traffic.cv",
+  "votes": 4,
+  "aliases": [
+   "Traffic.cv"
+  ],
+  "methods": [
+   {
+    "who": "随便",
+    "note": "有新站榜单，各种流量指标都非常清晰，适合深入看"
+   },
+   {
+    "who": "颜飞",
+    "note": "根据榜单的网站，发散出一批关键词去 SimilarWeb 去找到更多的关键词"
+   },
+   {
+    "who": "陈列",
+    "note": "可以看哪些网站正在赚钱或者最有流量"
+   }
+  ]
+ },
+ {
+  "domain": "replicate.com",
+  "name": "Replicate",
+  "votes": 4,
+  "aliases": [
+   "Replicate"
+  ],
+  "methods": [
+   {
+    "who": "击石",
+    "note": "新上的模型"
+   },
+   {
+    "who": "金玄宇",
+    "note": "新词，新模型，热门模型"
+   },
+   {
+    "who": "Mushan",
+    "note": "热门 API"
+   },
+   {
+    "who": "金智",
+    "note": "很适合观察哪些 AI 模型正在快速产品化"
+   }
+  ]
+ },
+ {
+  "domain": "youtube.com",
+  "name": "YouTube",
+  "votes": 4,
+  "aliases": [
+   "YouTube",
+   "YouTube（youtube.com）"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看搜索联想、Shorts、最近上传的视频、短期播放增长速度、评论区和视频字幕。新游戏、新AI模型和新玩法往往会先被视频博主测试；如果视频很长但用户只需要其中一个答案，就可以把内容整理成结构清晰的攻略页或工具页。"
+   },
+   {
+    "who": "国际范～",
+    "note": "看竞品教程、测评、对比视频的评论区，用户经常直接提出缺失功能、价格问题和替代需求"
+   },
+   {
+    "who": "金智",
+    "note": "教程评论区常常比产品评论更容易找到“不会做”和“想做什么”"
+   }
+  ]
+ },
+ {
+  "domain": "explodingtopics.com",
+  "name": "Exploding Topics",
+  "votes": 4,
+  "aliases": [
+   "Exploding Topics"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看快速增长的话题、新兴关键词、行业分类和增长速度。适合作为需求雷达发现未来趋势，再结合搜索量、竞争度和商业价值判断是否值得做网站或产品。"
+   },
+   {
+    "who": "Mushan",
+    "note": "新兴关键词、增长趋势"
+   },
+   {
+    "who": "金智",
+    "note": "适合提前发现正在增长但还没完全爆发的需求"
+   }
+  ]
+ },
+ {
+  "domain": "keywordtool.io",
+  "name": "Keyword Tool",
+  "votes": 3,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "",
+  "name": "Stripe 引荐流量榜",
+  "votes": 3,
+  "aliases": [
+   "SEO.box",
+   "通过主流收款平台（如 Stripe 和 PayPal）的流量数据"
+  ],
+  "methods": [
+   {
+    "who": "逆熵而行",
+    "note": "榜单结合上线时间，找需求"
+   },
+   {
+    "who": "阿明",
+    "note": "一个站能持续把访客送进收银台，说明它有真实付费转化，榜上大量是独立开发者与中小 SaaS，打法可学可复制。"
+   },
+   {
+    "who": "向左",
+    "note": "分析这些平台的入站流量数据，看哪些平台有真实的付费流量"
+   }
+  ]
+ },
+ {
+  "domain": "appsumo.com",
+  "name": "AppSumo",
+  "votes": 3,
+  "aliases": [
+   "AppSumo"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看问答区、差评与付费用户诉求"
+   },
+   {
+    "who": "JsonChao",
+    "note": "我主要看 Best Sellers、Lifetime Deal 热门产品、用户评论、Questions 和退款原因。AppSumo 用户有明确的软件购买习惯，通过分析哪些功能获得好评、哪些功能被吐槽，可以找到适合独立开发者切入的小型 SaaS 方向。"
+   },
+   {
+    "who": "金智",
+    "note": "用户评论很多，尤其适合看中小企业真实需求"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Upwork",
+  "votes": 3,
+  "aliases": [
+   "Upwork（upwork.com）",
+   "upwork.com"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看最新职位、反复出现的工作标题、项目预算、交付要求和雇主历史。如果某项人工服务持续有人发布需求，交付流程又可以拆成固定步骤，其中大部分能够通过AI、API或自动化完成，就有机会把这项服务做成标准化SaaS产品。"
+   },
+   {
+    "who": "国际范～",
+    "note": "看企业正在花钱外包什么工作，尤其关注高频、重复、人工操作的任务，是很强的付费需求信号。"
+   },
+   {
+    "who": "金智",
+    "note": "Jobs、项目描述、预算、重复出现的任务"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Shopify App Store",
+  "votes": 3,
+  "aliases": [
+   "Shopify App Store"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看热门应用、分类排名、价格、评价和差评内容。Shopify 商家已经习惯为提升收入的软件付费，评论中的运营痛点、电商流程问题和自动化需求，非常适合产品化。"
+   },
+   {
+    "who": "国际范～",
+    "note": "看 Shopify 商家对插件的评价，适合挖电商 SaaS，很多需求已经有明确付费能力"
+   },
+   {
+    "who": "金智",
+    "note": "App Reviews、1–3 星评论、分类榜单"
+   }
+  ]
+ },
+ {
+  "domain": "trustpilot.com",
+  "name": "https://www.trustpilot.com/",
+  "votes": 3,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "Mushan",
+    "note": "1–3 星评论"
+   },
+   {
+    "who": "金智",
+    "note": "最容易看到退款、扣费、客服、额度、生成失败等真实商业痛点。竞品 1–2 星评论、Recent Reviews"
+   }
+  ]
+ },
+ {
+  "domain": "columbus.tools",
+  "name": "X (Twitter)",
+  "votes": 3,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "随便",
+    "note": "也是榜单数据，用户体验比较好"
+   }
+  ]
+ },
+ {
+  "domain": "capterra.com",
+  "name": "https://www.capterra.com/",
+  "votes": 3,
+  "aliases": [
+   "Capterra（capterra.com）"
+  ],
+  "methods": [
+   {
+    "who": "国际范～",
+    "note": "看软件评价里的缺点、价格抱怨和功能诉求，可以找到企业用户真正不满意的地方"
+   },
+   {
+    "who": "金智",
+    "note": "低评分 Reviews、Cons"
+   }
+  ]
+ },
+ {
+  "domain": "linkedin.com",
+  "name": "Checking your browser",
+  "votes": 3,
+  "aliases": [
+   "LinkedIn"
+  ],
+  "methods": [
+   {
+    "who": "国际范～",
+    "note": "看 B2B 从业者的工作内容、行业讨论和评论，适合挖企业软件需求"
+   },
+   {
+    "who": "金智",
+    "note": "可以同时找企业需求、岗位需求、营销需求"
+   }
+  ]
+ },
+ {
+  "domain": "discord.com",
+  "name": "Discord",
+  "votes": 3,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "support、help、feature-request、bugs 频道"
+   }
+  ]
+ },
+ {
+  "domain": "quora.com",
+  "name": "https://www.quora.com/",
+  "votes": 3,
+  "aliases": [
+   "Quora"
+  ],
+  "methods": [
+   {
+    "who": "国际范～",
+    "note": "看某个问题被大量反复提问，适合发现长尾需求"
+   },
+   {
+    "who": "金智",
+    "note": "很适合找长期存在的问题和自然语言搜索需求"
+   }
+  ]
+ },
+ {
+  "domain": "dev.to",
+  "name": "DEV Community",
+  "votes": 3,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "开发者真实实践和工具吐槽多"
+   }
+  ]
+ },
+ {
+  "domain": "uneed.best",
+  "name": "Uneed",
+  "votes": 3,
+  "aliases": [
+   "Uneed"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看每日新品、分类排行榜、用户投票和产品介绍。很多独立开发者会先在这里测试市场反馈，可以发现刚上线但已经获得关注的小工具、AI应用和微型SaaS。"
+   },
+   {
+    "who": "金智",
+    "note": "AI / SaaS 新工具很多，适合扫新品和细分赛道"
+   }
+  ]
+ },
+ {
+  "domain": "play.google.com",
+  "name": "play.google.com",
+  "votes": 3,
+  "aliases": [
+   "Google Play",
+   "https://play.google.com/store/apps"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看应用分类榜、新发布应用、下载量、评分变化、低星评论和更新记录。特别关注操作简单、核心循环短、短期增长快的游戏和工具，再搜索“产品名 online”“产品名 browser”，判断用户是否存在PC端、网页版或免安装版本的需求。"
+   },
+   {
+    "who": "金智",
+    "note": "低评分评论、Recent Reviews"
+   }
+  ]
+ },
+ {
+  "domain": "zhihu.com",
+  "name": "https://www.zhihu.com/",
+  "votes": 2,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "higgsfield.ai",
+  "name": "Higgsfield",
+  "votes": 2,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "",
+  "name": "SaaSHub",
+  "votes": 2,
+  "aliases": [
+   "SaaSHub"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看软件分类、热门产品、Alternatives、用户评价和产品排名。通过分析成熟软件生态，可以发现用户正在寻找但市场供应不足的细分替代产品，尤其适合寻找低竞争SaaS机会。"
+   },
+   {
+    "who": "Mushan",
+    "note": "查看竞品"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Figma Community",
+  "votes": 2,
+  "aliases": [
+   "Figma"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看热门插件、模板、资源下载量、评论和用户请求。设计师工作流中大量重复操作适合自动化，例如图片处理、设计生成、批量编辑等，可以发展成插件或独立工具。"
+   }
+  ]
+ },
+ {
+  "domain": "itch.io",
+  "name": "itch.io",
+  "votes": 2,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看 New & Popular、热门标签、评分、开发日志和评论区。很多独立游戏会先在这里出现，然后通过TikTok、YouTube传播。提前发现增长中的小游戏，可以抢占攻略和工具关键词。"
+   },
+   {
+    "who": "柚子",
+    "note": "看新游戏"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "BuiltWith",
+  "votes": 2,
+  "aliases": [
+   "BuiltWith"
+  ],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看不同技术栈的网站、新增网站、支付工具和AI服务使用情况。通过筛选使用 Stripe、Paddle、Lemon Squeezy、Creem、OpenAI API 等技术的网站，可以发现正在商业化的新产品。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "观察大站的sitemap.xml文件变化",
+  "votes": 2,
+  "aliases": [
+   "通过监控一些大站的 sitemap，看看是否有新增，新增的看看是否值得做一个网站"
+  ],
+  "methods": [
+   {
+    "who": "向左",
+    "note": "大站新上线的内页可能隐藏新机会"
+   }
+  ]
+ },
+ {
+  "domain": "facebook.com",
+  "name": "Facebook",
+  "votes": 2,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "一些垂直群组里真实求助很多"
+   }
+  ]
+ },
+ {
+  "domain": "medium.com",
+  "name": "https://medium.com/",
+  "votes": 2,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "大量“怎么做”和“为什么不用某工具”的文章"
+   }
+  ]
+ },
+ {
+  "domain": "substack.com",
+  "name": "Substack",
+  "votes": 2,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "垂直领域作者会写真实工作流和工具需求"
+   }
+  ]
+ },
+ {
+  "domain": "hashnode.com",
+  "name": "Hashnode",
+  "votes": 2,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "开发者内容和 SaaS/API 使用场景多"
+   }
+  ]
+ },
+ {
+  "domain": "getapp.com",
+  "name": "https://www.getapp.com/",
+  "votes": 2,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "",
+  "name": "roblox",
+  "votes": 2,
+  "aliases": [
+   "Roblox"
+  ],
+  "methods": [
+   {
+    "who": "召唤兽",
+    "note": "找游戏站需求"
+   },
+   {
+    "who": "nicklos",
+    "note": "看updating 和trending的游戏，最好找有codes的"
+   }
+  ]
+ },
+ {
+  "domain": "saasworthy.com",
+  "name": "https://www.saasworthy.com/",
+  "votes": 2,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "SaaS 分类和竞品信息比较全"
+   }
+  ]
+ },
+ {
+  "domain": "futurepedia.io",
+  "name": "https://www.futurepedia.io/",
+  "votes": 2,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "快速扫 AI 工具赛道是否拥挤"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "pinterest",
+  "votes": 2,
+  "aliases": [
+   "Pinterest"
+  ],
+  "methods": [
+   {
+    "who": "山南见曦",
+    "note": "根据热门的图片，可以推测出相关的需求。"
+   },
+   {
+    "who": "nicklos",
+    "note": "会有一些很天马行空的pin，让你眼前一亮，找到灵感"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Fiverr",
+  "votes": 2,
+  "aliases": [
+   "fiverr.com"
+  ],
+  "methods": [
+   {
+    "who": "国际范～",
+    "note": "和 Upwork 类似，看用户正在反复购买哪些人工服务，判断哪些服务有机会产品化"
+   },
+   {
+    "who": "金智",
+    "note": "能看市场正在卖什么 AI 服务，以及买家愿意购买什么结果"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Stack Overflow",
+  "votes": 2,
+  "aliases": [
+   "stackoverflow.com"
+  ],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看高频问题、重复报错与未解难题"
+   },
+   {
+    "who": "国际范～",
+    "note": "看高频开发问题和重复解决方案，适合寻找 Developer Tool、API、自动化工具需求"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "即刻平台",
+  "votes": 2,
+  "aliases": [
+   "即刻"
+  ],
+  "methods": []
+ },
+ {
+  "domain": "vercel.app",
+  "name": "Vercel",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "转角喻到 AI",
+    "note": "很多初创网站的首发地，哥飞推荐"
+   }
+  ]
+ },
+ {
+  "domain": "github.io",
+  "name": "GitHub Pages",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "转角喻到 AI",
+    "note": "很多初创网站的首发地，哥飞推荐"
+   }
+  ]
+ },
+ {
+  "domain": "sitedata.dev",
+  "name": "SiteData",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "转角喻到 AI",
+    "note": "看里面“增长最快的新网站”"
+   }
+  ]
+ },
+ {
+  "domain": "easemate.ai",
+  "name": "EaseMate AI: Your All-In-One AI Assistan",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "pollo.ai",
+  "name": "https://pollo.ai/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "ads.tiktok.com",
+  "name": "TikTok For Business",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "",
+  "name": "使用词根然后再 google trends 中进行查找，在【热度上升的查询】找暴增、上升幅度大的。",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "longPc",
+    "note": "通过词根找暴增，再用暴增的词再找暴增的词。可以一直追下去"
+   }
+  ]
+ },
+ {
+  "domain": "appark.ai",
+  "name": "Appark",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "山南见曦",
+    "note": "通过APP排行榜去挖掘，挖掘新上线的APP，对标做成网站。"
+   }
+  ]
+ },
+ {
+  "domain": "support.google.com",
+  "name": "Google Help",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "answerthepublic.com",
+  "name": "AnswerThePublic",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "藤井树",
+    "note": "适合找“how/what/why”类内容"
+   }
+  ]
+ },
+ {
+  "domain": "dc8hdnsmzapvm.cloudfront.net",
+  "name": "Moz",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "neilpatel.com",
+  "name": "https://neilpatel.com/ubersuggest/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "wordstream.com",
+  "name": "https://www.wordstream.com/keyword-research-tool",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "surferseo.com",
+  "name": "Positive Surfer",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "questiondb.io",
+  "name": "QuestionDB",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "saashunt.com",
+  "name": "saashunt.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "陈慧_Vera",
+    "note": "免费导航站"
+   }
+  ]
+ },
+ {
+  "domain": "aitoolhunt.com",
+  "name": "aitoolhunt.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "陈慧_Vera",
+    "note": "免费导航站"
+   }
+  ]
+ },
+ {
+  "domain": "launchdly.io",
+  "name": "launchdly.io",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "陈慧_Vera",
+    "note": "免费导航站"
+   }
+  ]
+ },
+ {
+  "domain": "screensdesign.com",
+  "name": "ScreensDesign",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "qimai.cn",
+  "name": "https://www.qimai.cn/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "seo.web.cafe",
+  "name": "哥飞的 SEO 工具箱",
+  "votes": 1,
+  "aliases": [
+   "哥飞的 SEO 工具箱"
+  ],
+  "methods": [
+   {
+    "who": "麦塔",
+    "note": "找蓝海关键词，哥飞版的 KD 比 ahref的更能够体现供需关系"
+   },
+   {
+    "who": "麦塔",
+    "note": "从模糊的概念挖掘到具体的关键词,具体的对标网站"
+   }
+  ]
+ },
+ {
+  "domain": "turbo0.com",
+  "name": "Turbo0",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看工具榜单、竞品页面与用户反馈"
+   }
+  ]
+ },
+ {
+  "domain": "arena.ai",
+  "name": "Arena AI: The Official AI Ranking & LLM ",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "祥子",
+    "note": "看模型榜单、对战结果与社区反馈"
+   }
+  ]
+ },
+ {
+  "domain": "toolify.com",
+  "name": "toolify.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "",
+  "name": "Google Search Console",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看新出现的查询词、高曝光低点击词、排名8至20位的词，以及网站没有专门页面却持续获得曝光的查询。这些数据来自真实搜索用户，能够直接发现用户已经在找、但现有页面还没有完整满足的需求，是老网站扩展新功能和新内页的重要来源。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "VS Code Marketplace",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看热门插件、安装量、评分、评论和 GitHub Issue。开发者工具需求通常付费能力强，通过分析用户反复提出的问题，可以发现代码生成、调试、格式转换、自动化等方向。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "WordPress Plugin Directory",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看插件安装量、评分、Support Forum、更新时间和未解决问题。很多插件拥有巨大用户基础，但长期无人维护或体验较差，可以通过重新设计、增加AI能力或提供高级版本切入。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Steam",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看 New & Trending、热门新品、用户评价、讨论区和更新日志。重点分析玩家抱怨的问题，例如不知道怎么玩、缺少攻略、找不到数据，这些内容都可以转化成SEO流量页面。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "CrazyGames",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看 Trending、New Games、分类排名和热门网页游戏。网页游戏天然适合SEO，通过游戏名+online、unblocked、攻略、codes、characters等长尾词，可以快速建立大量页面获取流量。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Poki",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看热门游戏、新游戏、分类趋势和用户喜欢的玩法类型。Poki拥有大量网页游戏用户，可以帮助发现适合做SEO攻略站、游戏合集站和辅助工具的新需求。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Roblox Discover",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看热门体验、新增长游戏、玩家数量变化、更新内容和社区讨论。Roblox生态会持续产生新的游戏、角色、物品和代码需求，非常适合通过程序化SEO扩展大量长尾页面。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Fandom",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要看游戏Wiki结构、热门页面、角色页面、道具页面和搜索需求。一个游戏如果开始出现大量角色、装备、任务等信息需求，就说明玩家已经需要结构化知识库，可以建立垂直攻略网站。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "PublicWWW",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "JsonChao",
+    "note": "我主要搜索网页源码中的技术、API、支付方式、广告代码和框架。通过批量发现使用某种技术的网站，再结合流量分析，可以找到隐藏增长中的新产品和新需求。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "大站找关键词",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "向左",
+    "note": "分析大站的流量来源，找出能给大站带来流量的关键词"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "分析大站的出站链接",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "向左",
+    "note": "出站信息隐藏了新需求"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "基于博客评论外链挖掘需求",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "向左",
+    "note": "可以发现同行都在做什么产品"
+   }
+  ]
+ },
+ {
+  "domain": "ycbatchwatch.com",
+  "name": "Riveter",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "祝sheng",
+    "note": "看看YC投资了什么产品"
+   }
+  ]
+ },
+ {
+  "domain": "xiaohongshu.com",
+  "name": "小红书",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "amazon.com",
+  "name": "Amazon.com. Spend less. Smile more.",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "new.web.cafe",
+  "name": "Web.Cafe: 哥飞的朋友们",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "bsky.app",
+  "name": "Bluesky Social",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "threads.com",
+  "name": "Threads",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "stackshare.io",
+  "name": "https://stackshare.io/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "sourceforge.net",
+  "name": "Compare B2B Software, Download, & Develo",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "gartner.com",
+  "name": "https://www.gartner.com/peer-insights/home",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "peerlist.io",
+  "name": "https://peerlist.io/launchpad",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "5118.com",
+  "name": "https://www.5118.com/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "index.baidu.com",
+  "name": "https://index.baidu.com/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "sparktoro.com",
+  "name": "SparkToro",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "gitlab.com",
+  "name": "GitLab",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "market.envato.com",
+  "name": "ThemeForest",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "yelp.com",
+  "name": "https://www.yelp.com/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "dles.aukspot.com",
+  "name": "The Dles",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "crunch.id",
+  "name": "Crunch.id",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "ahrefstop.com",
+  "name": "AhrefsTop",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "mumsnet.com",
+  "name": "Mumsnet",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "softwarereviews.com",
+  "name": "SoftwareReviews",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "selecthub.com",
+  "name": "https://www.selecthub.com/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "fazier.com",
+  "name": "Fazier",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "microlaunch.net",
+  "name": "microlaunch.net",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "devpost.com",
+  "name": "Devpost",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "workspace.google.com",
+  "name": "Google Workspace",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "notion.com",
+  "name": "Notion",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "canva.com",
+  "name": "https://www.canva.com/apps/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "wappalyzer.com",
+  "name": "Wappalyzer",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "gs.statcounter.com",
+  "name": "StatCounter Global Stats",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "appbrain.com",
+  "name": "AppBrain",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "sensortower.com",
+  "name": "Digital Intelligence & App Data Analysis",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "trustradius.com",
+  "name": "https://www.trustradius.com/",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "starterstory.com",
+  "name": "Starter Story",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "moge.ai",
+  "name": "Curated New AI Tools Directory",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "日出东方",
+    "note": "最新的ai工具"
+   }
+  ]
+ },
+ {
+  "domain": "loot-drop.io",
+  "name": "Loot Drop",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "日出东方",
+    "note": "看死亡的项目吸取经验"
+   }
+  ]
+ },
+ {
+  "domain": "websitelaunches.com",
+  "name": "Website Launches",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "日出东方",
+    "note": "最新网站提交；因为该平台比较小，所以经常可以发现一些新奇特的项目"
+   }
+  ]
+ },
+ {
+  "domain": "promoteproject.com",
+  "name": "PromoteProject",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "日出东方",
+    "note": "最新网站提交；因为该平台比较小，所以经常可以发现一些新奇特的项目"
+   }
+  ]
+ },
+ {
+  "domain": "indieappcircle.com",
+  "name": "Indie App Circle",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "日出东方",
+    "note": "最新的ai工具"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "TrendsBar插件",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "陈列",
+    "note": "很方便地根据词根找词"
+   }
+  ]
+ },
+ {
+  "domain": "dang.ai",
+  "name": "Dang.ai",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "creati.ai",
+  "name": "creati.ai",
+  "votes": 1,
+  "aliases": [],
+  "methods": []
+ },
+ {
+  "domain": "",
+  "name": "google ads",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "跳高高",
+    "note": "看别人的投流在哪"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Google（google.com）",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "国际范～",
+    "note": "看搜索联想、People Also Ask 和真实搜索结果，判断用户到底在主动搜索什么问题和解决方案。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Facebook Groups",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "国际范～",
+    "note": "进入具体行业群，看真实从业者每天在问什么、抱怨什么"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "boss直聘",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "冬天的雨",
+    "note": "同行开始招人做的产品，往往都是验证过需求，并且目前还处在需求大于供应的阶段。"
+   }
+  ]
+ },
+ {
+  "domain": "freelancer.com",
+  "name": "Hire Freelancers & Find Freelance Jobs O",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "Projects、Contest、预算"
+   }
+  ]
+ },
+ {
+  "domain": "indeed.com",
+  "name": "indeed.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "可以反推企业正在花钱解决什么问题"
+   }
+  ]
+ },
+ {
+  "domain": "fal.ai",
+  "name": "Generative AI",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "AI 视频/图片 API 趋势很强，适合观察模型供给变化"
+   }
+  ]
+ },
+ {
+  "domain": "kie.ai",
+  "name": "One API for All the Best AI Models",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "适合看热门商业模型、价格和一站式 API 机会"
+   }
+  ]
+ },
+ {
+  "domain": "etsy.com",
+  "name": "etsy.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "热销数字产品、Reviews、Search Suggestions"
+   }
+  ]
+ },
+ {
+  "domain": "acquire.com",
+  "name": "Buy & Sell Profitable Online Businesses",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "能看到正在出售的 SaaS，适合判断哪些模式有人做成"
+   }
+  ]
+ },
+ {
+  "domain": "microns.io",
+  "name": "Micro Startups For Sale",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "小型 SaaS 交易市场，适合找微型需求"
+   }
+  ]
+ },
+ {
+  "domain": "flippa.com",
+  "name": "Flippa",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "可以看网站和 SaaS 的交易情况"
+   }
+  ]
+ },
+ {
+  "domain": "hackernoon.com",
+  "name": "HackerNoon",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "AI、SaaS、创业内容多"
+   }
+  ]
+ },
+ {
+  "domain": "beehiiv.com",
+  "name": "Newsletter Platform: Create Newsletters ",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "创作者 SaaS 生态强"
+   }
+  ]
+ },
+ {
+  "domain": "nocodefounders.com",
+  "name": "nocodefounders.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "无代码创业者需求密集"
+   }
+  ]
+ },
+ {
+  "domain": "makerlog.com",
+  "name": "makerlog.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "独立开发者每天公开做产品"
+   }
+  ]
+ },
+ {
+  "domain": "devhunt.org",
+  "name": "Dev Hunt",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "开发者产品发布平台"
+   }
+  ]
+ },
+ {
+  "domain": "startupstash.com",
+  "name": "Startup Stash",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "工具分类非常多，适合看细分市场"
+   }
+  ]
+ },
+ {
+  "domain": "growthhackers.com",
+  "name": "growthhackers.com",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "增长、营销类需求密集"
+   }
+  ]
+ },
+ {
+  "domain": "moz.com",
+  "name": "Moz",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "Community、Blog 评论"
+   }
+  ]
+ },
+ {
+  "domain": "circle.so",
+  "name": "Circle",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "很多 SaaS 私域社区在这里"
+   }
+  ]
+ },
+ {
+  "domain": "codecanyon.net",
+  "name": "CodeCanyon",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "大量“已经有人愿意买”的软件需求"
+   }
+  ]
+ },
+ {
+  "domain": "deviantart.com",
+  "name": "DeviantArt",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "AI 图片创作者需求"
+   }
+  ]
+ },
+ {
+  "domain": "twitch.tv",
+  "name": "Twitch",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "金智",
+    "note": "创作者工具需求"
+   }
+  ]
+ },
+ {
+  "domain": "app.sensortower-china.com",
+  "name": "Sensor Tower",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "绍清",
+    "note": "可以看到app端预估下载量和收入量"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Chrome Web Store / 谷歌扩展商店",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "python大大",
+    "note": "关注数十万用户量以上插件的“评价区（Reviews）”特别是 2~3 星差评，以及“支持（Support）”板块中的用户求助与提问。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Shopify App Store / WordPress Plugin Directory 等生态插件市场",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "python大大",
+    "note": "生态内的商户/站长本身具备极强的付费意愿（直接与他们的营收挂钩）；大量商户在差评中直言“缺少与某工具的对接”、“配置太复杂”、“客服响应太慢”，直接指明了“竞品做不好但市场急需”的明确机会。"
+   }
+  ]
+ },
+ {
+  "domain": "",
+  "name": "Upwork / Freelancer / Fiverr 等外包任务平台",
+  "votes": 1,
+  "aliases": [],
+  "methods": [
+   {
+    "who": "python大大",
+    "note": "主要看的地方：查看“客户发布的任务描述（Job Postings）”与重复度高的定制开发需求。"
+   }
+  ]
+ }
+]

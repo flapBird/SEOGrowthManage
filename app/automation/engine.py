@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import date
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import joinedload
@@ -12,12 +11,14 @@ from ..database import SessionLocal
 from ..models import (
     AutomationTask,
     AutomationTaskLog,
+    BacklinkOrigin,
     BacklinkRecord,
     Channel,
     ChannelStatus,
     PublishMethod,
     RecordStatus,
     TaskStatus,
+    now_local,
 )
 from ..security import CredentialCipher
 from .registry import get_adapter
@@ -80,13 +81,17 @@ async def execute_task(task_id: int) -> None:
             task.status = TaskStatus.success
             task.actual_url = result.actual_url
             task.last_error = None
+            observed_at = now_local()
             db.add(BacklinkRecord(
                 target_site_id=task.target_site_id,
                 channel_id=task.channel_id,
                 actual_url=result.actual_url,
+                target_url=task.target_site.url,
                 anchor_text=task.anchor_text,
-                published_at=date.today(),
+                published_at=observed_at.date(),
+                first_seen_at=observed_at,
                 method=PublishMethod.auto,
+                origin=BacklinkOrigin.automation,
                 status=RecordStatus.live,
             ))
             add_log(db, task.id, "success", result.message or f"发布成功: {result.actual_url}")

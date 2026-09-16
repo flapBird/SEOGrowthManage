@@ -1,0 +1,36 @@
+{
+  "active_profile": "games",
+  "profiles": {
+    "games": {
+      "subreddits": ["WebGames", "incremental_games", "IndieGaming", "gamedev"],
+      "suggest_roots": ["unblocked games", "io game", "idle game", "online game", "how to play", "game codes"]
+    },
+    "ai_tools": {
+      "subreddits": ["SideProject", "SaaS", "Entrepreneur", "smallbusiness", "ArtificialInteligence"],
+      "suggest_roots": ["ai", "ai generator", "ai tool", "ai converter", "ai image", "ai video"]
+    }
+  },
+  "reddit": {
+    "keywords": ["looking for", "alternative to", "is there a tool", "how do I", "recommend"]
+  },
+  "sources": {
+    "toolify_today": true,
+    "reddit": true,
+    "github_trending": true,
+    "hackernews": true,
+    "appstore_reviews": false,
+    "google_trends": true,
+    "google_suggest": true
+  },
+  "trends_geo": "US",
+  "appstore": {
+    "country": "us",
+    "app_ids": []
+  },
+  "limits": {
+    "max_signals_per_source": 30,
+    "max_reddit_per_combo": 8,
+    "max_toolify_new": 20,
+    "max_toolify_revenue": 10
+  }
+}

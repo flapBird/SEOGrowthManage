@@ -37,6 +37,13 @@ class PublishMethod(str, enum.Enum):
     auto = "auto"
 
 
+class BacklinkOrigin(str, enum.Enum):
+    manual = "manual"
+    batch = "batch"
+    automation = "automation"
+    extension_verified = "extension_verified"
+
+
 class RecordStatus(str, enum.Enum):
     pending = "pending"
     live = "live"
@@ -108,6 +115,16 @@ class SubmissionStatus(str, enum.Enum):
     duplicate = "duplicate"
     rejected = "rejected"
     failed = "failed"
+    removed = "removed"
+    unknown = "unknown"
+
+
+class VerificationOutcome(str, enum.Enum):
+    active = "active"
+    pending = "pending"
+    removed = "removed"
+    page_404 = "page_404"
+    link_missing = "link_missing"
     unknown = "unknown"
 
 
@@ -181,8 +198,6 @@ class Channel(Base):
     channel_type_other: Mapped[str | None] = mapped_column(String(80))
     status: Mapped[ChannelStatus] = mapped_column(Enum(ChannelStatus), default=ChannelStatus.active, index=True)
     requires_login: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
-    login_username: Mapped[str | None] = mapped_column(String(255))
-    login_password: Mapped[str | None] = mapped_column(String(255))
     link_type: Mapped[LinkType | None] = mapped_column(Enum(LinkType), index=True)
     dr_value: Mapped[int | None] = mapped_column(Integer)
     monthly_traffic: Mapped[int | None] = mapped_column(Integer)
@@ -303,6 +318,9 @@ class Submission(Base):
     target_site_id: Mapped[int] = mapped_column(
         ForeignKey("target_sites.id", ondelete="CASCADE"), index=True
     )
+    backlink_record_id: Mapped[int | None] = mapped_column(
+        ForeignKey("backlink_records.id", ondelete="SET NULL"), index=True
+    )
     target_url: Mapped[str] = mapped_column(String(2048))
     target_domain: Mapped[str] = mapped_column(String(255), index=True)
     source_url: Mapped[str] = mapped_column(String(2048), index=True)
@@ -326,6 +344,43 @@ class Submission(Base):
     task: Mapped[BacklinkTask] = relationship(back_populates="submissions")
     opportunity: Mapped[Opportunity] = relationship(back_populates="submissions")
     target_site: Mapped[TargetSite] = relationship(back_populates="submissions")
+    backlink_record: Mapped[BacklinkRecord | None] = relationship(foreign_keys=[backlink_record_id])
+    verifications: Mapped[list[BacklinkVerification]] = relationship(
+        back_populates="submission", cascade="all, delete-orphan", order_by="BacklinkVerification.id"
+    )
+
+
+class BacklinkVerification(Base):
+    __tablename__ = "backlink_verifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    submission_id: Mapped[int] = mapped_column(
+        ForeignKey("submissions.id", ondelete="CASCADE"), index=True
+    )
+    task_id: Mapped[int] = mapped_column(
+        ForeignKey("backlink_tasks.id", ondelete="CASCADE"), index=True
+    )
+    target_site_id: Mapped[int] = mapped_column(
+        ForeignKey("target_sites.id", ondelete="CASCADE"), index=True
+    )
+    backlink_record_id: Mapped[int | None] = mapped_column(
+        ForeignKey("backlink_records.id", ondelete="SET NULL"), index=True
+    )
+    verified_by_token_id: Mapped[int | None] = mapped_column(
+        ForeignKey("extension_tokens.id", ondelete="SET NULL"), index=True
+    )
+    source_url: Mapped[str] = mapped_column(String(2048))
+    target_url: Mapped[str] = mapped_column(String(2048))
+    outcome: Mapped[VerificationOutcome] = mapped_column(Enum(VerificationOutcome), index=True)
+    http_status: Mapped[int | None] = mapped_column(Integer)
+    anchor_text: Mapped[str | None] = mapped_column(String(500))
+    link_rel: Mapped[str | None] = mapped_column(Text)
+    message: Mapped[str | None] = mapped_column(Text)
+    checked_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+    submission: Mapped[Submission] = relationship(back_populates="verifications")
+    backlink_record: Mapped[BacklinkRecord | None] = relationship(foreign_keys=[backlink_record_id])
 
 
 class ChannelBlacklist(Base):
@@ -359,9 +414,16 @@ class BacklinkRecord(Base):
     target_site_id: Mapped[int] = mapped_column(ForeignKey("target_sites.id", ondelete="CASCADE"), index=True)
     channel_id: Mapped[int] = mapped_column(ForeignKey("channels.id", ondelete="CASCADE"), index=True)
     actual_url: Mapped[str] = mapped_column(String(2048))
+    target_url: Mapped[str | None] = mapped_column(String(2048))
     anchor_text: Mapped[str] = mapped_column(String(500))
+    link_rel: Mapped[str | None] = mapped_column(Text)
     published_at: Mapped[date] = mapped_column(Date, index=True)
+    first_seen_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    last_verified_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
     method: Mapped[PublishMethod] = mapped_column(Enum(PublishMethod), index=True)
+    origin: Mapped[BacklinkOrigin] = mapped_column(
+        Enum(BacklinkOrigin), default=BacklinkOrigin.manual, index=True
+    )
     status: Mapped[RecordStatus] = mapped_column(Enum(RecordStatus), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
 

@@ -59,11 +59,12 @@ export type SubmissionStatus =
   | "duplicate"
   | "rejected"
   | "failed"
+  | "removed"
   | "unknown";
 
 export interface CreateSubmissionInput {
   taskId: EntityId;
-  status: SubmissionStatus;
+  status: "prepared";
   targetUrl: string;
   sourceUrl: string;
   workflow: WorkflowType;
@@ -75,11 +76,19 @@ export interface CreateSubmissionInput {
   submittedAt?: string;
 }
 
+export interface UpdateSubmissionInput {
+  status: Extract<SubmissionStatus, "submitted" | "pending" | "duplicate" | "rejected" | "failed" | "unknown">;
+  submissionUrl?: string;
+  resultMessage?: string;
+  note?: string;
+}
+
 export interface Submission {
   id: EntityId;
   taskId: EntityId;
   opportunityId: EntityId;
   projectId: EntityId;
+  backlinkRecordId?: EntityId | null;
   targetUrl: string;
   targetDomain: string;
   sourceUrl: string;
@@ -144,7 +153,7 @@ export interface FillAndRecordResult {
 
 export interface CreateVerificationInput {
   taskId: EntityId;
-  submissionId?: EntityId;
+  submissionId: EntityId;
   sourceUrl: string;
   targetUrl: string;
   outcome: "active" | "pending" | "removed" | "page_404" | "link_missing" | "unknown";
@@ -153,6 +162,93 @@ export interface CreateVerificationInput {
   linkRel?: string[];
   checkedAt: string;
   message?: string;
+}
+
+export type VerificationOutcome = CreateVerificationInput["outcome"];
+
+export interface PageVerificationResult {
+  sourceUrl: string;
+  targetUrl: string;
+  outcome: Extract<VerificationOutcome, "active" | "page_404" | "link_missing" | "unknown">;
+  anchorText?: string;
+  linkRel: string[];
+  checkedAt: string;
+  message: string;
+}
+
+export interface Verification {
+  id: EntityId;
+  submissionId: EntityId;
+  taskId: EntityId;
+  projectId: EntityId;
+  backlinkRecordId?: EntityId | null;
+  sourceUrl: string;
+  targetUrl: string;
+  outcome: VerificationOutcome;
+  httpStatus?: number | null;
+  anchorText?: string | null;
+  linkRel: string[];
+  message?: string | null;
+  checkedAt: string;
+  createdAt: string;
+}
+
+export interface SubmissionActionResult {
+  submission: Submission;
+  task: BacklinkTask;
+}
+
+export interface VerificationResult extends SubmissionActionResult {
+  verification: Verification;
+}
+
+export interface SubmitButtonCandidate {
+  label: string;
+  phase: "progress" | "final";
+  confidence: number;
+  selected: boolean;
+  reason?: string;
+}
+
+export interface SubmitControlResult {
+  url: string;
+  candidates: SubmitButtonCandidate[];
+  warnings: string[];
+  canSubmit: boolean;
+  clicked: boolean;
+}
+
+export interface SubmissionOutcomeDetection {
+  url: string;
+  status: UpdateSubmissionInput["status"];
+  confidence: number;
+  message: string;
+}
+
+export interface SubmitExecutionResult extends SubmissionActionResult {
+  action: SubmitControlResult;
+  outcome?: SubmissionOutcomeDetection;
+  verification?: Verification;
+  progressed: boolean;
+}
+
+export interface BacklinkHistoryItem {
+  id: EntityId;
+  projectId: EntityId;
+  projectName: string;
+  channelId: EntityId;
+  channelName: string;
+  channelUrl: string;
+  actualUrl: string;
+  targetUrl: string;
+  anchorText: string;
+  linkRel: string[];
+  status: "pending" | "live" | "removed";
+  origin: "manual" | "batch" | "automation" | "extension_verified";
+  publishedAt: string;
+  firstSeenAt?: string | null;
+  lastVerifiedAt?: string | null;
+  submissionId?: EntityId | null;
 }
 
 export interface PageAnalysis {

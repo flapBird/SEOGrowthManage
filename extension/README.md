@@ -2,7 +2,7 @@
 
 SEO Growth Console 的本地浏览器执行端。Web 服务部署在云服务器，Extension 运行在用户自己的 Chrome 中；两者只通过 HTTPS JSON API 通信。插件相关源码、构建配置和接口文档均保存在本目录。
 
-## 当前已实现（Phase 1–3）
+## 当前已实现（Phase 1–4）
 
 - Chrome Manifest V3 和 Side Panel。
 - 云端服务器地址与 Extension Token 本地保存、连接测试。
@@ -17,8 +17,13 @@ SEO Growth Console 的本地浏览器执行端。Web 服务部署在云服务器
 - 项目资料提供 Name、Email、Website、Tagline 和长短描述。
 - 预填前显示字段、目标值、置信度与历史重复提示。
 - 支持原生 input/textarea/select/contenteditable，并触发 React/Vue 常用的 input/change/blur 事件。
+- 提交前识别并预览按钮，排除 Delete、Login、Cancel、Search、Subscribe 等非提交操作。
+- `Next / Continue / Get started` 只推进多步骤表单，Submission 继续保持 `prepared`。
+- 最终 Submit 必须经过浏览器二次确认；提交后识别 submitted、pending、duplicate、rejected、failed、unknown。
+- 扫描当前结果页的可见链接；只有精确 Target URL 存在时才创建/关联正式 Backlink。
+- 支持 Submission 历史选择、人工纠正结果、重复验证和已发布链接失效标记。
 
-只有用户点击“确认填入（不会提交）”后才会填写空字段；已有内容不会覆盖。插件不会点击 Submit，不处理 CAPTCHA。真正提交、结果识别和 Backlink Verification 将在后续阶段接入。
+只有用户点击“确认填入（不会提交）”后才会填写空字段；已有内容不会覆盖。真正提交时还必须先“识别提交按钮”，再点击 `Confirm Submit` 并通过浏览器确认框。插件不处理 CAPTCHA，也不会把待审核或成功提示直接当成正式 Backlink。
 
 ## 本地开发
 
@@ -68,6 +73,10 @@ PATCH /api/v1/tasks/:id
 GET   /api/v1/submissions/check
 GET   /api/v1/submissions
 POST  /api/v1/submissions
+PATCH /api/v1/submissions/:id
+GET   /api/v1/verifications
+POST  /api/v1/verifications
+GET   /api/v1/backlinks/history
 ```
 
 请求使用：
@@ -87,5 +96,6 @@ Content-Type: application/json
 - 云端服务地址必须使用 HTTPS；仅本地开发允许 localhost HTTP。
 - Background 负责 API 通信；页面分析函数只返回结构化检测结果。
 - Token 当前拥有插件 API 的全项目访问能力，建议每台浏览器单独创建并设置到期时间。
-- 所有实际 Submit 动作仍必须由用户明确确认。
+- 所有实际 Submit 动作必须经过按钮预览、侧栏点击和浏览器确认框三层显式确认。
 - `prepared` 仅表示表单已填好，不代表已经提交或产生外链。
+- 页面提示“提交成功”最多更新 Submission；只有 DOM 验证发现精确 Target URL 才生成正式 Backlink。

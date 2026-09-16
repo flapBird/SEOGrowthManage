@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .automation.scheduler import scheduler
 from .config import BASE_DIR, get_settings
-from .database import Base, engine, run_lightweight_migrations
+from .database import Base, engine, migrate_legacy_channel_credentials, run_lightweight_migrations
 from .security import CredentialCipher
 from .web import public_router, router
 from .keyword_web import router as keyword_router
@@ -21,6 +21,7 @@ async def lifespan(_app: FastAPI):
     CredentialCipher()  # Fail fast when FERNET_KEY is malformed.
     Base.metadata.create_all(bind=engine)
     run_lightweight_migrations(engine)
+    migrate_legacy_channel_credentials(engine)
     if settings.scheduler_enabled:
         scheduler.start()
     yield

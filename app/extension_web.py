@@ -52,10 +52,15 @@ def extension_context(db: Session, issued_token: str | None = None) -> dict:
         "tasks": tasks,
         "submissions": db.scalars(
             select(Submission)
-            .options(joinedload(Submission.target_site), joinedload(Submission.opportunity))
+            .options(
+                joinedload(Submission.target_site),
+                joinedload(Submission.opportunity),
+                joinedload(Submission.backlink_record),
+                joinedload(Submission.verifications),
+            )
             .order_by(Submission.created_at.desc(), Submission.id.desc())
             .limit(100)
-        ).all(),
+        ).unique().all(),
         "sites": db.scalars(select(TargetSite).order_by(TargetSite.name)).all(),
         "issued_token": issued_token,
         "OpportunityType": OpportunityType,

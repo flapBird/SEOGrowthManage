@@ -22,12 +22,13 @@
 
 ### 3. 发布记录与查询看板
 
-- `Submission` 保存插件从真实操作开始产生的历史，`prepared` 只表示表单已填好；它与已经发布/验证的 `BacklinkRecord` 严格分开。
-- `BacklinkRecord` 关联一个 `TargetSite` 和一个 `Channel`，保存实际发布 URL、锚文本、发布日期、发布方式和状态。
-- 发布方式为 `manual` / `auto`，状态为 `pending` / `live` / `removed`。
+- `Submission` 保存插件从预填、确认提交到审核结果的完整历史，`prepared` 只表示表单已填好；它与已经发布/验证的 `BacklinkRecord` 严格分开。
+- `BacklinkVerification` 保存每次当前页面检查的 outcome、URL、anchor、rel 和时间。只有 outcome 为 `active` 才能创建正式 `BacklinkRecord`；后续发现链接消失会将正式记录标记为 `removed`。
+- `BacklinkRecord` 关联一个 `TargetSite` 和一个 `Channel`，保存来源页、精确 Target URL、锚文本、rel、首次发现/最近验证时间、发布日期、发布方式和状态。
+- 兼容发布方式仍为 `manual` / `auto`，状态为 `pending` / `live` / `removed`；新增证据来源 `manual / batch / automation / extension_verified`，用于区分人工登记、批量登记、适配器报告成功和插件实际验证。
 - 新增或编辑记录时，目标网站或渠道变化会通过 htmx 请求 `/records/duplicate-check`。如果同一网站在同一渠道已有 `live` 记录，页面显示最近一条记录的发布日期，但不阻止提交。
 - 登记发布记录时，目标网站和渠道下拉框上方提供名称/网址即时搜索；渠道选项只包含非黑名单渠道。
-- `/records` 同时承担两个查询维度：指定目标网站可查看它已发布过的渠道；指定渠道可查看它服务过的目标网站。两者均可继续按状态和发布方式筛选，并默认按发布日期倒序。
+- `/records` 同时承担两个查询维度：指定目标网站可查看它已发布过的渠道；指定渠道可查看它服务过的目标网站。可按状态、兼容发布方式和证据来源筛选，并展示来源页、Target URL、rel、首次发现及最近验证时间。
 - 自动任务生成的记录使用醒目的“自动引擎”标签。
 - `SubmissionBatch` 和 `SubmissionBatchItem` 把“批量登记”与“未来提交计划”统一为一条工作流：选择一个渠道、多个目标网站、计划日期、统一查看地址、锚文本和备注，既可先保存为待提交计划，也可立即批量完成。
 - 提交计划不会提前进入正式发布看板。批次详情支持只勾选本次实际完成的网站；系统为这些网站分别生成 `manual` 发布记录，未勾选的网站继续留在计划中，批次相应变为“部分完成”。全部处理后变为“已完成”。
@@ -39,6 +40,7 @@
 - `ChannelCredential` 与渠道一对一关联，保存用户名、加密密码和加密额外字段。
 - `CredentialCipher` 使用 Fernet 对称加密；`FERNET_KEY` 只从环境变量读取，不写入源码或 SQLite。
 - 页面不解密回显密码/API Key，只显示 `******`。更新时敏感输入留空会保留原密文。
+- 旧版 `channels.login_username/login_password` 不再由 ORM、路由或页面使用。存量 SQLite 在首次启动新版时会将数据迁入 `ChannelCredential`，密码用当前 `FERNET_KEY` 加密成功后立即把旧明文列置空；已有加密凭据优先，不会被旧值覆盖。
 - 自动适配器执行前才会在进程内解密，并以字典传给适配器；任务日志不会记录凭据。
 
 ### 5. 自动发布引擎
@@ -50,7 +52,7 @@
 - APScheduler 按配置间隔批量触发 `process_pending_tasks`。任务使用原子状态抢占，避免定时调度与手动执行造成重复提交。
 - 只有状态为“正常”且勾选支持自动化的渠道能够创建、执行任务；执行前再次校验，失效/封禁渠道会转为“需人工介入”，不再自动尝试。
 - 首次失败后最多自动重试 `AUTOMATION_MAX_RETRIES` 次（默认 3）。超过上限转为“需人工介入”，可在后台重置后再试。
-- 只有适配器返回成功且给出实际发布 URL 时才会新增 `method=auto`、`status=live` 的正式发布记录；失败只写任务和日志。
+- 只有适配器返回成功且给出实际发布 URL 时才会新增 `method=auto`、`origin=automation`、`status=live` 的记录；失败只写任务和日志。该来源表示“适配器报告成功”，不冒充 Extension 的独立 DOM Verification。
 
 ### 6. 关键词发现与复查
 
@@ -118,6 +120,9 @@ TargetSite ──< BacklinkRecord >────────── Channel ──
 TargetSite ──< BacklinkTask >── Opportunity
      │              │                │
      └──────────────┴──< Submission >┘
+                           │       │
+                           │       └── BacklinkRecord（仅 active verification）
+                           └──< BacklinkVerification
 ```
 
 ## Docker + Caddy HTTPS 部署

@@ -66,17 +66,18 @@
 </section>
 
 <section class="panel table-wrap">
-  <div class="panel-head"><h2>最近 Submission</h2><small>预填只记录 prepared，不等于已经发布外链</small></div>
-  <table><thead><tr><th>Submission</th><th>项目</th><th>来源</th><th>工作流</th><th>状态</th><th>填写内容</th><th>时间</th></tr></thead><tbody>
+  <div class="panel-head"><h2>最近 Submission</h2><small>只有验证为 published 才会关联正式 Backlink</small></div>
+  <table><thead><tr><th>Submission</th><th>项目</th><th>来源 / 提交页</th><th>工作流</th><th>状态</th><th>验证</th><th>填写内容</th><th>时间</th></tr></thead><tbody>
   {% for submission in submissions %}<tr>
     <td><strong>#{{ submission.id }}</strong><small>任务 #{{ submission.task_id }}</small></td>
     <td>{{ submission.target_site.name }}<small>{{ submission.target_url }}</small></td>
-    <td><a href="{{ submission.source_url }}" target="_blank" rel="noopener">{{ submission.source_domain }}</a><small>{{ submission.source_url }}</small></td>
+    <td><a href="{{ submission.submission_url or submission.source_url }}" target="_blank" rel="noopener">{{ submission.source_domain }}</a><small>{{ submission.submission_url or submission.source_url }}</small></td>
     <td>{{ submission.workflow.value }}</td>
     <td><span class="badge status-{{ submission.status.value }}">{{ submission.status.value }}</span></td>
+    <td>{{ submission.verifications|length }} 次{% if submission.backlink_record_id %}<small><a href="/records/{{ submission.backlink_record_id }}/edit">Backlink #{{ submission.backlink_record_id }}</a> · {{ submission.backlink_record.status.value }}</small>{% else %}<small>尚无正式外链</small>{% endif %}</td>
     <td>{% if submission.submitted_content %}{{ submission.submitted_content[:80] }}{% else %}—{% endif %}<small>{{ submission.result_message or '' }}</small></td>
-    <td>{{ submission.prepared_at.strftime('%Y-%m-%d %H:%M') }}</td>
-  </tr>{% else %}<tr><td colspan="7" class="empty">还没有插件预填记录。</td></tr>{% endfor %}
+    <td>{{ submission.updated_at.strftime('%Y-%m-%d %H:%M') }}<small>预填 {{ submission.prepared_at.strftime('%m-%d %H:%M') }}</small></td>
+  </tr>{% else %}<tr><td colspan="8" class="empty">还没有插件 Submission 记录。</td></tr>{% endfor %}
   </tbody></table>
 </section>
 {% endblock %}
