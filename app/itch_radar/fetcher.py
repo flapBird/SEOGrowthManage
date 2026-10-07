@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import timedelta
 
 import httpx
 from sqlalchemy import select
@@ -63,6 +64,14 @@ def _make_client() -> httpx.AsyncClient:
         "User-Agent": DEFAULT_USER_AGENT,
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
+        # itch 的 Cloudflare 防护会对"不像浏览器的请求"返回 403（尤其数据中心 IP）；
+        # 带上 Referer 与 Sec-Fetch 系列头可以降低被拦截概率，但无法完全绕过。
+        "Referer": "https://itch.io/games/newest/free/html5/platform-web",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "same-site",
+        "Sec-Fetch-User": "?1",
     }
     return httpx.AsyncClient(headers=headers, proxy=proxy, timeout=30, follow_redirects=True)
 
@@ -122,12 +131,18 @@ async def poll_feeds(db: Session) -> dict:
 
 
 async def enrich_game(db: Session, game: ItchGame, client: httpx.AsyncClient) -> bool:
-    """抓单个游戏详情页并补全字段；成功返回 True（含 404 等终态失败也返回 False 留待下轮）。"""
+    """抓单个游戏详情页并补全字段；成功返回 True，失败记录退避等待下轮。
+
+    403/522 多为出口 IP 被 itch 前置防护拦截，按 attempts 指数退避
+    （2h → 4h → … → 封顶 24h），8 次自动重试后只允许手动「补全详情」触发。
+    """
     settings = get_settings()
     try:
         response = await _get_polite(client, game.url)
     except Exception as exc:
         game.last_error = f"{type(exc).__name__}: {exc}"
+        game.detail_attempts = (game.detail_attempts or 0) + 1
+        game.next_detail_at = now_local() + timedelta(hours=min(2 ** game.detail_attempts, 24))
         db.commit()
         return False
     detail = parse_game_page(response.text)
@@ -158,6 +173,8 @@ async def enrich_game(db: Session, game: ItchGame, client: httpx.AsyncClient) ->
         )
     )
     game.detail_fetched_at = now_local()
+    game.detail_attempts = 0
+    game.next_detail_at = None
     game.status = ItchGameStatus.ready
     game.last_error = None
     db.commit()
@@ -166,14 +183,21 @@ async def enrich_game(db: Session, game: ItchGame, client: httpx.AsyncClient) ->
 
 
 async def enrich_pending(db: Session, limit: int | None = None) -> int:
-    """为本轮待补全的游戏抓详情页，返回成功数。"""
+    """为本轮待补全的游戏抓详情页，返回成功数。失败退避中的游戏跳过。"""
     batch = get_settings().itch_radar_detail_batch if limit is None else limit
     if batch <= 0:
         return 0
+    now = now_local()
+    due = (ItchGame.next_detail_at.is_(None)) | (ItchGame.next_detail_at <= now)
     games = db.scalars(
         select(ItchGame)
-        .where(ItchGame.status == ItchGameStatus.new, ItchGame.detail_fetched_at.is_(None))
-        .order_by(ItchGame.discovered_at.desc())
+        .where(
+            ItchGame.status == ItchGameStatus.new,
+            ItchGame.detail_fetched_at.is_(None),
+            due,
+            ItchGame.detail_attempts < 8,
+        )
+        .order_by(ItchGame.detail_attempts.asc(), ItchGame.discovered_at.desc())
         .limit(batch)
     ).all()
     if not games:

@@ -5,7 +5,8 @@
 
 <form class="filters" method="get">
   <a class="button" href="/itch?date={{ prev_day }}&status={{ selected_status }}&q={{ q }}">← 前一天</a>
-  <input type="date" name="date" value="{{ day }}">
+  <input type="date" name="date" value="{{ day }}" onfocus="this.showPicker && this.showPicker()">
+  <a class="button" href="/itch?date={{ next_day }}&status={{ selected_status }}&q={{ q }}">后一天 →</a>
   <select name="status">
     <option value="">全部状态</option>
     {% for value in statuses %}<option value="{{ value }}" {{ 'selected' if selected_status == value }}>{{ status_labels[value] }}</option>{% endfor %}
@@ -35,7 +36,13 @@
       {% if game.description %}<p class="itch-desc">{{ game.description }}</p>{% endif %}
       {% if game.genres or game.tags %}<p class="itch-chips">{% for g in game.genres %}<span class="chip chip-genre">{{ g }}</span>{% endfor %}{% for t in game.tags %}<span class="chip">{{ t }}</span>{% endfor %}</p>{% endif %}
       {% if game.quality_notes %}<p class="itch-notes">⚠ {{ game.quality_notes|join('；') }}</p>{% endif %}
-      {% if game.last_error %}<p class="itch-notes">抓取失败：{{ game.last_error }}</p>{% endif %}
+      {% if game.last_error %}
+        {% if '403' in game.last_error %}
+          <p class="itch-notes">⚠ itch 拒绝了详情页抓取（403），通常是服务器出口 IP 被 itch 防护拦截。RSS 不受影响，基础信息已入库；可给服务器配置 <code>ITCH_RADAR_PROXY</code> 代理出口后等待自动重试，或直接点开游戏链接交给 AI 读取。</p>
+        {% else %}
+          <p class="itch-notes">抓取失败：{{ game.last_error }}</p>
+        {% endif %}
+      {% endif %}
       <p class="itch-actions">
         {% if not game.detail_fetched_at %}<form method="post" action="/itch/{{ game.id }}/detail"><input type="hidden" name="back" value="{{ query_suffix }}"><button class="link-button" type="submit">补全详情</button></form>{% endif %}
         {% if game.status.value != 'used' %}<form method="post" action="/itch/{{ game.id }}/status"><input type="hidden" name="status" value="used"><input type="hidden" name="back" value="{{ query_suffix }}"><button class="link-button" type="submit">标记已用</button></form>{% endif %}

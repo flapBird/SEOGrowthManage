@@ -129,6 +129,16 @@ def run_lightweight_migrations(target_engine) -> None:
         if "monthly_traffic" not in existing:
             connection.execute(text("ALTER TABLE channels ADD COLUMN monthly_traffic INTEGER"))
 
+    # itch_games 的详情抓取退避列（2026-10 补充）。
+    if "itch_games" in inspector.get_table_names():
+        itch_existing = {column["name"] for column in inspector.get_columns("itch_games")}
+        with target_engine.begin() as connection:
+            if "detail_attempts" not in itch_existing:
+                connection.execute(text("ALTER TABLE itch_games ADD COLUMN detail_attempts INTEGER NOT NULL DEFAULT 0"))
+            if "next_detail_at" not in itch_existing:
+                connection.execute(text("ALTER TABLE itch_games ADD COLUMN next_detail_at DATETIME"))
+
+
 def migrate_legacy_channel_credentials(target_engine) -> int:
     """把旧 channels 明文账号密码迁入 ChannelCredential，并清空明文列。"""
     from sqlalchemy import inspect, text

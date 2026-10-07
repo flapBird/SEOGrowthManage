@@ -48,9 +48,13 @@ itch.io 官方 RSS（每 5 分钟轮询，仅 1 个请求）
 
 1. 新表 `itch_games` 由启动时的 `Base.metadata.create_all` 自动创建，无需手工迁移。
 2. `requirements.txt` 新增 `beautifulsoup4`，需要 `docker compose build` 重建镜像。
-3. 服务器必须能访问 `itch.io`（被墙/限流的网络需给容器配 `ITCH_RADAR_PROXY`）。
-   itch 的限流特征：RSS 单请求高频轮询无风险；详情页批量抓取必须限速，
-   遇到 429/522 系统会记录到 `last_error` 并在下一轮自动重试。
+3. 服务器必须能访问 `itch.io`。两类典型故障：
+   - **429/522（限流/瞬时不可达）**：RSS 单请求高频轮询无风险；详情页批量抓取必须限速。
+   - **403（IP 被防护拦截）**：itch 的 Cloudflare 防护常对数据中心 IP 的游戏详情页请求
+   返回 403，RSS 一般不受影响。系统已带 Referer/Sec-Fetch 浏览器式请求头，并把失败
+   按指数退避重试（2h→4h→…→封顶 24h，8 次后仅手动触发）；根治办法是给容器配置
+   `ITCH_RADAR_PROXY` 走住宅/干净的代理出口。被拦截的游戏基础信息（标题、封面、简介、
+   上架时间）来自 RSS，仍然可用、可导出。
 4. 长期统计口径：`itch_published_at`（itch 上架时刻）与 `discovered_at`
    （系统发现时刻）都在库里，可随时评估"从上架到入库"的延迟。
 

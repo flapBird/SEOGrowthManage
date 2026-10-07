@@ -518,6 +518,9 @@ class ItchGame(Base):
     discovered_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
     last_seen_at: Mapped[datetime | None] = mapped_column(DateTime)
     detail_fetched_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # 详情抓取失败退避：按 attempts 指数退避（2h 起步封顶 24h），8 次后仅手动触发
+    detail_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    next_detail_at: Mapped[datetime | None] = mapped_column(DateTime)
     genre_json: Mapped[str | None] = mapped_column(Text)
     tags_json: Mapped[str | None] = mapped_column(Text)
     platforms_json: Mapped[str | None] = mapped_column(Text)
