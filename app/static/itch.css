@@ -4,6 +4,13 @@
 .filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 16px 0; }
 .filters input, .filters select { padding: 6px 10px; border: 1px solid var(--border, #d7dde8); border-radius: 8px; background: #fff; }
 
+/* 筛选行收成一行：全局 input/select 是 width:100%，不收紧的话每个控件各占一行 */
+.itch-filters input, .itch-filters select { width: auto; }
+.itch-filters input[type="date"] { min-width: 150px; }
+.itch-filters select[name="status"] { min-width: 130px; }
+.itch-filters input[name="q"] { flex: 1 1 220px; min-width: 180px; }
+.itch-filters .button, .itch-filters button { white-space: nowrap; }
+
 .itch-summary { padding: 10px 16px; margin-bottom: 14px; color: var(--muted, #55617a); }
 
 .itch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 14px; }
