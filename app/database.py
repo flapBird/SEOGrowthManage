@@ -129,36 +129,6 @@ def run_lightweight_migrations(target_engine) -> None:
         if "monthly_traffic" not in existing:
             connection.execute(text("ALTER TABLE channels ADD COLUMN monthly_traffic INTEGER"))
 
-    # KeywordCandidate 的 Agent 判断列（与规则判定分开存储）。
-    if "keyword_candidates" not in inspector.get_table_names():
-        return
-    kw_existing = {column["name"] for column in inspector.get_columns("keyword_candidates")}
-    with target_engine.begin() as connection:
-        if "agent_verdict" not in kw_existing:
-            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_verdict VARCHAR(20)"))
-        if "agent_kd" not in kw_existing:
-            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_kd INTEGER"))
-        if "agent_reason" not in kw_existing:
-            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_reason TEXT"))
-        if "agent_judged_at" not in kw_existing:
-            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN agent_judged_at DATETIME"))
-        if "last_dispatched_at" not in kw_existing:
-            connection.execute(text("ALTER TABLE keyword_candidates ADD COLUMN last_dispatched_at DATETIME"))
-
-    # KeywordSource 的基线标记列。
-    # is_initialized：False=下次抓取走首次基线模式（只建指纹不计新增）；True=已基准化走增量。
-    if "keyword_sources" not in inspector.get_table_names():
-        return
-    src_existing = {column["name"] for column in inspector.get_columns("keyword_sources")}
-    with target_engine.begin() as connection:
-        if "is_initialized" not in src_existing:
-            # 先加列，默认 0（未初始化）；存量来源在下一行统一回填为已基准化。
-            connection.execute(text("ALTER TABLE keyword_sources ADD COLUMN is_initialized BOOLEAN NOT NULL DEFAULT 0"))
-            # 存量来源此前已经抓过、已有指纹数据，标记为已基准化，下次抓取照常增量计新增；
-            # 只有此后新增的来源才从 False 起步、首次抓取建基线。
-            connection.execute(text("UPDATE keyword_sources SET is_initialized = 1"))
-
-
 def migrate_legacy_channel_credentials(target_engine) -> int:
     """把旧 channels 明文账号密码迁入 ChannelCredential，并清空明文列。"""
     from sqlalchemy import inspect, text

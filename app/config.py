@@ -22,27 +22,16 @@ class Settings(BaseSettings):
     automation_batch_size: int = Field(default=10, ge=1, le=100)
     automation_max_retries: int = Field(default=3, ge=0, le=20)
     playwright_headless: bool = True
-    keyword_discovery_enabled: bool = True
-    keyword_fetch_interval_seconds: int = Field(default=1800, ge=60)
-    keyword_enrichment_interval_seconds: int = Field(default=900, ge=60)
-    keyword_enrichment_batch_size: int = Field(default=5, ge=1, le=50)
-    keyword_serpapi_daily_budget: int = Field(default=50, ge=0, le=10000)
-    keyword_ignore_cooldown_days: int = Field(default=30, ge=1, le=365)
-    keyword_anomaly_ratio: float = Field(default=0.3, ge=0.0, le=1.0)
-    keyword_fetch_max_retries: int = Field(default=3, ge=0, le=10)
-    keyword_fetch_max_concurrency: int = Field(default=5, ge=1, le=50)
-    keyword_fetch_request_delay: float = Field(default=0.5, ge=0.0, le=10.0)
-    # 远程 Claude Code Agent 集成（文件队列 + cron 拉起 Agent + 容器轮询回收）。
-    agent_integration_enabled: bool = False  # 默认关，配好宿主机 cron 和目录权限再开
-    agent_dispatch_interval_seconds: int = Field(default=1800, ge=60)
-    agent_collect_interval_seconds: int = Field(default=300, ge=60)
-    agent_batch_size: int = Field(default=20, ge=1, le=500)
-    agent_queue_dir: str = "agent_queue"
-    agent_review_cooldown_hours: int = Field(default=72, ge=1, le=720)
-    agent_min_score: float = Field(default=20.0, ge=0.0, le=100.0)
-    # 队列背压：in/pending 积压的批次文件数达到此阈值时本轮跳过分发，
-    # 避免消费端（宿主机 Agent 脚本）停摆时无限堆积文件。
-    agent_max_pending_batches: int = Field(default=3, ge=1, le=500)
+    # itch.io 新游雷达：高频轮询官方 RSS 只做"发现"，详情页补全每轮限量+限速
+    # （itch 前置 WAF 会 429 限流，详情页抓取是主要风险点）。
+    itch_radar_enabled: bool = True
+    itch_radar_poll_interval_seconds: int = Field(default=300, ge=60)
+    itch_radar_feeds: str = "https://itch.io/games/newest/free/html5/platform-web.xml"
+    itch_radar_detail_batch: int = Field(default=10, ge=0, le=100)
+    itch_radar_detail_delay_seconds: float = Field(default=4.0, ge=0.5, le=60)
+    itch_radar_max_retries: int = Field(default=1, ge=0, le=5)
+    # 出口代理（如本机 http://127.0.0.1:7890）；留空则跟随 HTTP(S)_PROXY 环境变量。
+    itch_radar_proxy: str = ""
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore"

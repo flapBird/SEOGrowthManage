@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}ITCH 新游{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">itch.io 新游雷达</p><h1>每日新游戏</h1><p class="muted">定时轮询 itch 官方 RSS 自动发现新游戏并补全详情；每天打开本页，导出 Markdown 交给 AI 即可为 PlayBloo 建页。</p></div><div class="actions"><form method="post" action="/itch/run"><button class="button" type="submit">立即抓取一轮</button></form><a class="button primary" href="/itch/export?date={{ day }}" target="_blank">导出当日 Markdown</a></div></div>
+
+<form class="filters" method="get">
+  <a class="button" href="/itch?date={{ prev_day }}&status={{ selected_status }}&q={{ q }}">← 前一天</a>
+  <input type="date" name="date" value="{{ day }}">
+  <select name="status">
+    <option value="">全部状态</option>
+    {% for value in statuses %}<option value="{{ value }}" {{ 'selected' if selected_status == value }}>{{ status_labels[value] }}</option>{% endfor %}
+  </select>
+  <input name="q" value="{{ q }}" placeholder="标题 / URL">
+  <button>筛选</button>
+  <a class="button" href="/itch?date={{ today }}">回到今天</a>
+</form>
+
+<section class="itch-summary panel"><strong>{{ day }}</strong> 共 {{ games|length }} 款 · 待补全 {{ games|selectattr('status.value', 'equalto', 'new')|list|length }} · 已就绪 {{ games|selectattr('status.value', 'equalto', 'ready')|list|length }} · 已用 {{ games|selectattr('status.value', 'equalto', 'used')|list|length }}</section>
+
+<section class="itch-grid">
+{% for game in games %}
+  <article class="itch-card panel {{ 'itch-warn' if game.detail_fetched_at and not game.quality_ok }}">
+    <a class="itch-cover" href="{{ game.url }}" target="_blank" rel="noopener">
+      {% if game.cover_url %}<img src="{{ game.cover_url }}" loading="lazy" alt="{{ game.title }}">
+      {% else %}<div class="itch-cover-empty">无封面</div>{% endif %}
+    </a>
+    <div class="itch-body">
+      <h3><a href="{{ game.url }}" target="_blank" rel="noopener">{{ game.title }}</a></h3>
+      <p class="muted itch-meta">
+        <span class="badge itch-{{ game.status.value }}">{{ status_labels[game.status] }}</span>
+        {{ game.author or '未知作者' }} · 上架 {{ game.effective_published_at.strftime('%m-%d %H:%M') }}
+        {% if game.price %} · {{ game.price }}{% endif %}
+        {% if game.platforms %} · {{ game.platforms|join('/') }}{% endif %}
+      </p>
+      {% if game.description %}<p class="itch-desc">{{ game.description }}</p>{% endif %}
+      {% if game.genres or game.tags %}<p class="itch-chips">{% for g in game.genres %}<span class="chip chip-genre">{{ g }}</span>{% endfor %}{% for t in game.tags %}<span class="chip">{{ t }}</span>{% endfor %}</p>{% endif %}
+      {% if game.quality_notes %}<p class="itch-notes">⚠ {{ game.quality_notes|join('；') }}</p>{% endif %}
+      {% if game.last_error %}<p class="itch-notes">抓取失败：{{ game.last_error }}</p>{% endif %}
+      <p class="itch-actions">
+        {% if not game.detail_fetched_at %}<form method="post" action="/itch/{{ game.id }}/detail"><input type="hidden" name="back" value="{{ query_suffix }}"><button class="link-button" type="submit">补全详情</button></form>{% endif %}
+        {% if game.status.value != 'used' %}<form method="post" action="/itch/{{ game.id }}/status"><input type="hidden" name="status" value="used"><input type="hidden" name="back" value="{{ query_suffix }}"><button class="link-button" type="submit">标记已用</button></form>{% endif %}
+        {% if game.status.value != 'skipped' %}<form method="post" action="/itch/{{ game.id }}/status"><input type="hidden" name="status" value="skipped"><input type="hidden" name="back" value="{{ query_suffix }}"><button class="link-button" type="submit">忽略</button></form>{% endif %}
+      </p>
+    </div>
+  </article>
+{% else %}
+  <section class="panel empty-day"><p class="empty">这一天还没有入库的游戏。可以「立即抓取一轮」，或选其他日期查看。</p></section>
+{% endfor %}
+</section>
+{% endblock %}

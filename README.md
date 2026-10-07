@@ -1,6 +1,6 @@
 # SEO Growth Console（SEO 增长工作台）
 
-一个供个人站长长期部署使用的 SEO 工作台，包含外链发布管理和关键词机会发现。后端使用 FastAPI，页面使用 Jinja2 + htmx 服务端渲染，数据通过 SQLAlchemy ORM 持久化到 SQLite 文件，并内置可扩展的 APScheduler + Playwright 自动发布引擎。
+一个供个人站长长期部署使用的 SEO 工作台，包含外链发布管理和 itch.io 新游雷达。后端使用 FastAPI，页面使用 Jinja2 + htmx 服务端渲染，数据通过 SQLAlchemy ORM 持久化到 SQLite 文件，并内置可扩展的 APScheduler + Playwright 自动发布引擎。
 
 ## 模块划分
 
@@ -54,18 +54,13 @@
 - 首次失败后最多自动重试 `AUTOMATION_MAX_RETRIES` 次（默认 3）。超过上限转为“需人工介入”，可在后台重置后再试。
 - 只有适配器返回成功且给出实际发布 URL 时才会新增 `method=auto`、`origin=automation`、`status=live` 的记录；失败只写任务和日志。该来源表示“适配器报告成功”，不冒充 Extension 的独立 DOM Verification。
 
-### 6. 关键词发现与复查
+### 6. itch.io 新游雷达
 
-- `app/keyword_discovery/` 是与外链发布解耦的独立流水线，共享管理员鉴权、SQLite、Fernet 和 APScheduler。
-- 来源支持标准 Sitemap、Sitemap Index（递归展开两层）、gzip Sitemap、RSS 及人工逐行导入。下载带指数退避重试，子 sitemap 并发抓取（受并发数与请求间隔限流），默认用浏览器 UA 以绕过 WAF 对脚本 UA 的误伤。每个来源必须确认条款或授权允许自动访问，并尊重对方的 Crawl-delay。
-- `KeywordSourceItem` 保存不可变来源条目并通过指纹比较发现新增；`KeywordCandidate` 保存标准化、去重后的候选；`KeywordSignalSnapshot` 保存每次搜索信号快照。抓取返回空结果时不更新基线，避免误判全量”新增”。
-- 清洗会去掉 gameplay、walkthrough、长数字 ID 等噪声，但保留原始标题和 URL 便于追溯。
-- 每个候选按 Google Autocomplete、Google Trends、YouTube 搜索和 Google 竞争结果四类 SerpAPI 信号评分。YouTube 快照重复采集后会计算近似播放增速。
-- 状态分为 `HOT`、`HOLD`、`IGNORE` 和待分析；HOLD 按分数在 24 小时、72 小时或 7 天后复查，IGNORE 冷却 30 天后可重新激活。
-- `SerpApiPool` 支持多个合法持有的 API Key，Key 使用 Fernet 加密。系统通过免费 Account API 同步余额，按优先级、剩余额度和最近使用时间选池，遇到 429 自动切换。
-- `KEYWORD_SERPAPI_DAILY_BUDGET` 是应用自己的每日安全预算，默认 50 次；一个候选完整分析约使用 4 次查询，因此默认每天最多自动完整分析约 12 个候选。
-- **远程 Agent 智能判断**：可选的远程 AI 驱动二次筛选，通过本地启发式过滤减少 API 成本，批量送至 Claude Code Agent 做综合判断，支持 HOT/COLD 分类和 KD 预估，详见 [agent-integration.md](docs/agent-integration.md)。
-- 通知能力：`NotifyChannel` 支持 Server酱微信、企业微信群机器人和 SMTP 邮件三种通道，配置用 Fernet 加密入库，页面不回显明文。每轮抓取结束后聚合一条新增摘要（包含关键字词样）；当某来源新增占比超过 `KEYWORD_ANOMALY_RATIO`（默认 0.3）或抓取失败时附带异常告警；候选在分析中新晋 HOT 或经 Agent 判定为 HOT 时也会聚合推送。
+- `app/itch_radar/` 与 `app/itch_web.py` 组成独立的 itch.io 新游发现模块，详见 [itch-radar.md](docs/itch-radar.md)。
+- 每 5 分钟轮询 itch 官方 RSS（`/games/newest/free/html5/platform-web.xml`，即 browse 页加 `.xml`），通过游戏 URL 去重入库，记录 itch 精确上架时间与本地发现时间。
+- 新游戏按轮限量补全详情页（作者、类型、标签、平台、截图、精确发布时间），请求间隔与 429 退避可配置；失败的记录留在「待补全」状态，下一轮自动重试。
+- 轻质量门槛检查封面、简介长度、发布状态和 HTML5 平台标注，结果展示在页面上供人工取舍。
+- 系统只负责发现和交付：每天在 `/itch` 页面导出当日 Markdown（含建议关键词），交给 AI 为 PlayBloo 生成独立页面，系统不做自动发布。
 
 ## 核心目录与职责
 
@@ -78,28 +73,21 @@
 │   ├── models.py               # 业务模型、服务端 session 模型和枚举
 │   ├── security.py             # 管理员 session 与 Fernet 加解密
 │   ├── web.py                  # 页面、表单、CRUD、筛选和 htmx 端点
+│   ├── itch_web.py             # itch.io 新游雷达页面（每日新游、导出 Markdown）
+│   ├── itch_radar/
+│   │   ├── parse.py            # RSS/详情页解析、关键词推导、质量门槛（纯函数）
+│   │   └── fetcher.py          # RSS 轮询、详情补全、限速与退避、入库去重
 │   ├── automation/
 │   │   ├── base.py             # 适配器契约与提交结果
 │   │   ├── registry.py         # 适配器注册表
 │   │   ├── playwright_form.py  # Playwright 通用表单示例适配器
 │   │   ├── engine.py           # 任务选择、执行、重试、日志和记录落库
 │   │   └── scheduler.py        # APScheduler 周期调度
-│   ├── keyword_discovery/
-│   │   ├── normalizer.py       # 游戏名清洗、语言和泛词过滤
-│   │   ├── sources.py          # Sitemap/RSS 下载（重试退避、并发、递归 index）和安全解析
-│   │   ├── serpapi.py          # 加密多额度池、余额同步和故障切换
-│   │   ├── pipeline.py         # 历史比对、信号聚合、评分、自动复查和通知触发
-│   │   ├── notify.py           # 通知通道分发（Server酱 / 企业微信 / 邮件）
-│   │   ├── agent_filter.py     # 本地启发式过滤，剔除不值得送 Agent 的候选
-│   │   ├── agent_queue.py      # 文件队列管理，批量送出和回收 Agent 判断结果
-│   │   └── keyword_web.py      # 候选、来源、日志、额度池和通知通道页面
 │   ├── templates/              # Jinja2 页面及 htmx 局部模板
-│   │   └── agent/              # Agent 管理页面模板
 │   └── static/                 # 页面样式与批量网站选择交互
-│       └── agent.css           # Agent 管理界面样式
 ├── data/                       # SQLite 持久化目录（Docker volume）
 ├── docs/                       # 文档目录
-│   └── agent-integration.md    # 远程 Agent 集成指南
+│   └── itch-radar.md           # itch.io 新游雷达说明
 ├── tests/                      # 鉴权、CRUD、加密、查询及任务状态机测试
 ├── Dockerfile
 └── docker-compose.yml
@@ -161,16 +149,15 @@ TargetSite ──< BacklinkTask >── Opportunity
 
 SQLite 文件保存在宿主机 `./data/backlink_manager.db`，Caddy 证书保存在 Docker volume `caddy_data`。备份时建议先停止容器，再复制整个 `data/` 目录并单独保管 `.env`；不要把 `.env` 提交进 Git。
 
-## 关键词发现快速使用
+## itch.io 新游雷达快速使用
 
-1. 进入“关键词发现”→“SerpAPI 额度池”，添加一个或多个本人/团队合法持有的 API Key，再点击“同步全部额度”。页面只展示余额，永不回显明文 Key。
-2. 进入“通知设置”，按需添加 Server酱微信、企业微信群机器人或 SMTP 邮件通道，配置字段用 Fernet 加密入库，页面只显示 `******`。点“测试推送”验证配置是否通畅。
-3. 进入“来源与日志”，添加条款允许自动访问的 Sitemap 或 Google Trends RSS，选择语言、国家和抓取间隔。Sitemap 只用于发现新增 URL，不被当作排行榜热度。来源的高级 JSON 配置可覆盖默认抓取参数，例如 `{"max_child_sitemaps": 100, "max_concurrency": 10, "request_delay_seconds": 0.3, "user_agent": "自定义 UA"}`。
-4. 对无法自动抓取的平台，可把你人工查看到的榜单游戏名复制到“人工导入候选”，每行一个。
-5. APScheduler 会定期比较来源历史并生成去重候选。待分析候选按照每日额度预算查询 Autocomplete、Trends、YouTube 和 Google SERP。每轮抓取的新增摘要、异常告警（新增占比超过阈值或抓取失败）和新晋 HOT 候选会聚合推送到已配置的通知通道。
-6. 在候选列表查看 HOT/HOLD/IGNORE；进入详情可看分项分数、信号时间线、立即重新分析或人工调整判断。
+1. 首次使用登录后进入「ITCH 新游」，点击「立即抓取一轮」，系统抓取 itch 官方 RSS 并入库最近一批新游戏。
+2. APScheduler 之后每 5 分钟自动轮询一次（可配置），新游戏自动入库并限量补全详情（作者、标签、平台、截图等）。
+3. 每天打开 `/itch` 页面查看当天新游戏，可按日期回看、按状态筛选；质量提醒（缺封面、简介过短、未正式发布）只作参考，取舍由人工决定。
+4. 点击「导出当日 Markdown」，把材料交给任意 AI 为 PlayBloo 生成独立游戏页面；做完回系统把该游戏标记为「已用于 PlayBloo」。
+5. 出口被墙/限流的服务器需在 `.env` 配置 `ITCH_RADAR_PROXY`；详情页抓取速度参数不要调高，itch 会 429 限流。
 
-只要服务器和 SerpAPI 可用额度已经持有，这一模块通常不产生新增现金支出。它不是无限免费：超出 SerpAPI 额度、购买额外额度、增加服务器/代理或使用其他付费数据源仍会产生费用。应用不会自动购买额度，达到内部每日预算或所有池耗尽后会停止查询并等待额度恢复。
+详细的数据流、配置项和部署注意事项见 [itch-radar.md](docs/itch-radar.md)。
 
 ## 本地开发与测试
 

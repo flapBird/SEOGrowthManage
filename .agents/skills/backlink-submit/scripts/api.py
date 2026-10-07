@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import ssl
 import sys
 import urllib.error
 import urllib.parse
@@ -96,12 +97,21 @@ def call_api(config: dict, method: str, path: str, payload: dict | None = None,
     headers = {
         "Authorization": f"Bearer {config['token']}",
         "Content-Type": "application/json",
+        # 站点在 Cloudflare 之后，默认 python-urllib UA 会被 1010 拦截
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
     }
     if idempotency_key:
         headers["Idempotency-Key"] = idempotency_key
     request = urllib.request.Request(url, data=data, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        # macOS python.org 发行版常缺系统 CA；有 certifi 就用它的证书包（可选依赖）
+        kwargs: dict = {"timeout": 30}
+        try:
+            import certifi
+            kwargs["context"] = ssl.create_default_context(cafile=certifi.where())
+        except ImportError:
+            pass
+        with urllib.request.urlopen(request, **kwargs) as response:
             return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", "replace")
@@ -200,10 +210,13 @@ def online_block_reason(config: dict, project_id: int, channel: dict) -> dict | 
         return {"reason": f"check_failed: {exc}", "counts": None}
     exact = counts.get("exactSubmissionCount", 0)
     domain = counts.get("domainSubmissionCount", 0)
+    backlinks = counts.get("domainBacklinkCount", 0)
     if exact > 0:
         return {"reason": "线上已有同 URL 提交", "counts": counts}
     if domain > 0 and channel.get("category") in SINGLE_SUBMIT_CATEGORIES:
         return {"reason": "线上该域名已有提交（单提交类渠道）", "counts": counts}
+    if backlinks > 0 and channel.get("category") in SINGLE_SUBMIT_CATEGORIES:
+        return {"reason": "线上该域名已有正式外链（单提交类渠道）", "counts": counts}
     return None
 
 
@@ -213,10 +226,12 @@ def cmd_plan(args) -> None:
     data = json.loads(CHANNELS_PATH.read_text(encoding="utf-8"))
     ledger = load_ledger()
     keys = set(args.key or [])
+    matched_keys: set[str] = set()
     selected, skipped = [], []
     for channel in data["channels"]:
         if keys and channel["key"] not in keys:
             continue
+        matched_keys.add(channel["key"])
         if args.tier and channel["tier"] != args.tier:
             continue
         if args.category and channel["category"] != args.category:
@@ -238,7 +253,8 @@ def cmd_plan(args) -> None:
         selected.append({k: channel[k] for k in ("key", "name", "url", "submit_url", "category",
                                                  "tier", "votes", "paid_tier", "needs_badge")})
     print(json.dumps({"project_id": project_id, "selected": selected,
-                      "selected_count": len(selected), "skipped": skipped[:30]},
+                      "selected_count": len(selected), "skipped": skipped[:30],
+                      "unknown_keys": sorted(keys - matched_keys)},
                      ensure_ascii=False, indent=2))
 
 
@@ -371,6 +387,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_task_create)
 
     p = sub.add_parser("prepared")
+    p.add_argument("--project", type=int, default=None, help="兼容批量脚本传入，实际以 task 归属为准")
     p.add_argument("--task-id", type=int, required=True)
     p.add_argument("--url", required=True, help="来源页 URL（与任务一致）")
     p.add_argument("--target", required=True, help="目标产品 URL（与任务一致）")

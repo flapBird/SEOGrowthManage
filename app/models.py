@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import enum
+import json
 from datetime import date, datetime
 
 from sqlalchemy import Boolean, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -126,31 +127,6 @@ class VerificationOutcome(str, enum.Enum):
     page_404 = "page_404"
     link_missing = "link_missing"
     unknown = "unknown"
-
-
-class KeywordSourceType(str, enum.Enum):
-    sitemap = "sitemap"
-    trends_rss = "trends_rss"
-    manual = "manual"
-
-
-class KeywordCandidateStatus(str, enum.Enum):
-    discovered = "discovered"
-    hot = "hot"
-    hold = "hold"
-    ignore = "ignore"
-
-
-class KeywordFetchStatus(str, enum.Enum):
-    running = "running"
-    success = "success"
-    failed = "failed"
-
-
-class NotifyChannelType(str, enum.Enum):
-    serverchan = "serverchan"
-    wecom_bot = "wecom_bot"
-    email = "email"
 
 
 class AdminSession(Base):
@@ -513,163 +489,86 @@ class AutomationTaskLog(Base):
     task: Mapped[AutomationTask] = relationship(back_populates="logs")
 
 
-class KeywordSource(Base):
-    __tablename__ = "keyword_sources"
+class ItchGameStatus(str, enum.Enum):
+    new = "new"          # 已从 RSS 入库，详情未补全
+    ready = "ready"      # 详情已补全，可导出交给 AI 制作页面
+    used = "used"        # 已用于 PlayBloo 建页
+    skipped = "skipped"  # 人工判定不采用
+
+
+class ItchGame(Base):
+    """itch.io 新游戏雷达的入库记录：RSS 提供基础字段，详情页按需补全。"""
+
+    __tablename__ = "itch_games"
+    __table_args__ = (UniqueConstraint("url", name="uq_itch_games_url"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(160), index=True)
-    source_type: Mapped[KeywordSourceType] = mapped_column(Enum(KeywordSourceType), index=True)
-    url: Mapped[str | None] = mapped_column(String(2048))
-    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    terms_confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
-    language: Mapped[str] = mapped_column(String(20), default="en")
-    country: Mapped[str] = mapped_column(String(10), default="US")
-    interval_minutes: Mapped[int] = mapped_column(Integer, default=360)
-    config_json: Mapped[str | None] = mapped_column(Text)
-    last_fetched_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
-    last_error: Mapped[str | None] = mapped_column(Text)
-    is_initialized: Mapped[bool] = mapped_column(Boolean, default=False)  # 是否已建立首次抓取基线；False=下次抓取走基线模式不计新增
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
-
-    items: Mapped[list[KeywordSourceItem]] = relationship(back_populates="source", cascade="all, delete-orphan")
-    runs: Mapped[list[KeywordFetchRun]] = relationship(back_populates="source", cascade="all, delete-orphan")
-    signals: Mapped[list[KeywordSignalSnapshot]] = relationship(back_populates="source")
-
-
-class KeywordSourceItem(Base):
-    __tablename__ = "keyword_source_items"
-    __table_args__ = (UniqueConstraint("source_id", "fingerprint"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    source_id: Mapped[int] = mapped_column(ForeignKey("keyword_sources.id", ondelete="CASCADE"), index=True)
-    fingerprint: Mapped[str] = mapped_column(String(64), index=True)
-    raw_title: Mapped[str] = mapped_column(String(1000))
-    item_url: Mapped[str | None] = mapped_column(String(2048))
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-
-    source: Mapped[KeywordSource] = relationship(back_populates="items")
-
-
-class KeywordCandidate(Base):
-    __tablename__ = "keyword_candidates"
-    __table_args__ = (UniqueConstraint("normalized_key"),)
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    keyword: Mapped[str] = mapped_column(String(300), index=True)
-    normalized_key: Mapped[str] = mapped_column(String(300), index=True)
-    language: Mapped[str] = mapped_column(String(20), default="en")
-    country: Mapped[str] = mapped_column(String(10), default="US")
-    status: Mapped[KeywordCandidateStatus] = mapped_column(
-        Enum(KeywordCandidateStatus), default=KeywordCandidateStatus.discovered, index=True
+    url: Mapped[str] = mapped_column(String(500), index=True)
+    title: Mapped[str] = mapped_column(String(300), index=True)
+    author: Mapped[str | None] = mapped_column(String(200))
+    cover_url: Mapped[str | None] = mapped_column(String(1000))
+    description: Mapped[str | None] = mapped_column(Text)
+    price: Mapped[str | None] = mapped_column(String(60))
+    source_feed: Mapped[str | None] = mapped_column(String(500))
+    status: Mapped[ItchGameStatus] = mapped_column(
+        Enum(ItchGameStatus), default=ItchGameStatus.new, index=True
     )
-    heat_score: Mapped[float] = mapped_column(Float, default=0)
-    freshness_score: Mapped[float] = mapped_column(Float, default=0)
-    intent_score: Mapped[float] = mapped_column(Float, default=0)
-    competition_score: Mapped[float] = mapped_column(Float, default=0)
-    confidence_score: Mapped[float] = mapped_column(Float, default=0)
-    total_score: Mapped[float] = mapped_column(Float, default=0, index=True)
-    source_count: Mapped[int] = mapped_column(Integer, default=0)
-    decision_reason: Mapped[str | None] = mapped_column(Text)
-    first_seen_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
-    last_seen_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-    last_enriched_at: Mapped[datetime | None] = mapped_column(DateTime)
-    next_review_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
-    ignored_until: Mapped[datetime | None] = mapped_column(DateTime, index=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
-    # 远程 Claude Code Agent 的智能判断结果，与上面的规则判定分开存储，便于对比两者分歧。
-    agent_verdict: Mapped[str | None] = mapped_column(String(20))       # hot / hold / ignore
-    agent_kd: Mapped[int | None] = mapped_column(Integer)               # Agent 查到的关键词难度
-    agent_reason: Mapped[str | None] = mapped_column(Text)              # Agent 的推理理由
-    agent_judged_at: Mapped[datetime | None] = mapped_column(DateTime)  # 最近一次被 Agent 判断的时间
-    # 最近一次被分发进 Agent 批次的时间。配合冷却窗口做在途去重：
-    # 一个候选被分发后、在冷却期内不会重复打包，即使 Agent 端尚未处理也不会反复发送。
-    last_dispatched_at: Mapped[datetime | None] = mapped_column(DateTime)
-
-    signals: Mapped[list[KeywordSignalSnapshot]] = relationship(
-        back_populates="candidate", cascade="all, delete-orphan", order_by="KeywordSignalSnapshot.captured_at.desc()"
-    )
-
-
-class KeywordSignalSnapshot(Base):
-    __tablename__ = "keyword_signal_snapshots"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    candidate_id: Mapped[int] = mapped_column(ForeignKey("keyword_candidates.id", ondelete="CASCADE"), index=True)
-    source_id: Mapped[int | None] = mapped_column(ForeignKey("keyword_sources.id", ondelete="SET NULL"), index=True)
-    signal_type: Mapped[str] = mapped_column(String(80), index=True)
-    numeric_value: Mapped[float | None] = mapped_column(Float)
-    payload_json: Mapped[str | None] = mapped_column(Text)
-    captured_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
-
-    candidate: Mapped[KeywordCandidate] = relationship(back_populates="signals")
-    source: Mapped[KeywordSource | None] = relationship(back_populates="signals")
-
-
-class KeywordFetchRun(Base):
-    __tablename__ = "keyword_fetch_runs"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    source_id: Mapped[int] = mapped_column(ForeignKey("keyword_sources.id", ondelete="CASCADE"), index=True)
-    status: Mapped[KeywordFetchStatus] = mapped_column(Enum(KeywordFetchStatus), index=True)
-    discovered_count: Mapped[int] = mapped_column(Integer, default=0)
-    new_candidate_count: Mapped[int] = mapped_column(Integer, default=0)
-    message: Mapped[str | None] = mapped_column(Text)
-    started_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime)
-
-    source: Mapped[KeywordSource] = relationship(back_populates="runs")
-
-
-class SerpApiPool(Base):
-    __tablename__ = "serpapi_pools"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(160), index=True)
-    encrypted_api_key: Mapped[str] = mapped_column(Text)
-    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    priority: Mapped[int] = mapped_column(Integer, default=100)
-    quota_limit: Mapped[int | None] = mapped_column(Integer)
-    quota_remaining: Mapped[int | None] = mapped_column(Integer, index=True)
-    renewal_at: Mapped[datetime | None] = mapped_column(DateTime)
-    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
-    consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
+    # itch 侧的精确上架时间（东八区 naive）；RSS 缺失时由详情页 Published 补充。
+    itch_published_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, index=True)
+    last_seen_at: Mapped[datetime | None] = mapped_column(DateTime)
+    detail_fetched_at: Mapped[datetime | None] = mapped_column(DateTime)
+    genre_json: Mapped[str | None] = mapped_column(Text)
+    tags_json: Mapped[str | None] = mapped_column(Text)
+    platforms_json: Mapped[str | None] = mapped_column(Text)
+    screenshots_json: Mapped[str | None] = mapped_column(Text)
+    keywords_json: Mapped[str | None] = mapped_column(Text)
+    quality_json: Mapped[str | None] = mapped_column(Text)
     last_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
 
+    def _json_list(self, raw: str | None) -> list:
+        try:
+            return json.loads(raw or "[]")
+        except json.JSONDecodeError:
+            return []
 
-class NotifyChannel(Base):
-    __tablename__ = "notify_channels"
+    @property
+    def genres(self) -> list[str]:
+        return self._json_list(self.genre_json)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), index=True)
-    channel_type: Mapped[NotifyChannelType] = mapped_column(Enum(NotifyChannelType), index=True)
-    # 整段配置用 Fernet 加密存储（sendkey / webhook / SMTP 授权码等敏感字段），与 ChannelCredential 一致。
-    config_json: Mapped[str] = mapped_column(Text)
-    enabled: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
-    consecutive_failures: Mapped[int] = mapped_column(Integer, default=0)
-    last_error: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+    @property
+    def tags(self) -> list[str]:
+        return self._json_list(self.tags_json)
 
+    @property
+    def platforms(self) -> list[str]:
+        return self._json_list(self.platforms_json)
 
-class AgentBatch(Base):
-    """远程 Agent 交接批次的审计跟踪：容器写任务文件 → Agent 处理 → 容器回收结果。"""
-    __tablename__ = "agent_batches"
+    @property
+    def screenshots(self) -> list[str]:
+        return self._json_list(self.screenshots_json)
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    batch_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
-    dispatched_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-    collected_at: Mapped[datetime | None] = mapped_column(DateTime)
-    candidate_count: Mapped[int] = mapped_column(Integer, default=0)
-    status: Mapped[str] = mapped_column(String(20), default="dispatched")  # dispatched / collected / failed
-    in_path: Mapped[str | None] = mapped_column(String(512))
-    out_path: Mapped[str | None] = mapped_column(String(512))
-    message: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=now_local, onupdate=now_local)
+    @property
+    def keywords(self) -> list[str]:
+        return self._json_list(self.keywords_json)
+
+    @property
+    def quality(self) -> dict:
+        try:
+            return json.loads(self.quality_json or "{}")
+        except json.JSONDecodeError:
+            return {}
+
+    @property
+    def quality_ok(self) -> bool:
+        return bool(self.quality.get("ok", False)) if self.quality else True
+
+    @property
+    def quality_notes(self) -> list[str]:
+        return self.quality.get("notes", [])
+
+    @property
+    def effective_published_at(self) -> datetime:
+        return self.itch_published_at or self.discovered_at

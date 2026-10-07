@@ -2,6 +2,23 @@
 
 字段映射、结果判定、通用流程都在本文件；SKILL.md 只讲步骤顺序。入口 URL 以站内实际为准——清单里的 submit_url 只是参考，进站后**必须**从真实页面找 Submit/Add/Launch 入口，禁止盲信硬编码路径。
 
+## SideProjectors（sideprojectors.com）✅ 已跑通的参考渠道（2026-09 实测，14 站成功）
+
+免登录探测结论：需登录；showcase 提交免费。**批量提交流程已固化为 `scripts/sp_run.py`**（一个站点一条命令跑完 10 阶段），手动手册如下：
+
+1. **入口**：登录后 `+ SUBMIT A PROJECT` → 选 "🎉 I want to promote / showcase my project"（展示模式，不涉及出售）
+2. **抓取快捷方式**：展开 "Fetch information from the project homepage" 卡片 → 填站点 URL → Submit → 自动建草稿并抓取名称/描述/og-image（草稿在 My Projects → Drafts，编辑链接 `/submit/project/<id>/general`）
+3. **6 步向导**：
+   - **General**：type 选 Website / Web Application；名称用站点品牌名（≤50 字符，meta title 可能超限要手改）；pitch **≤80 字符**；描述是 Quill 富文本（用 execCommand insertText 写入）；**Markets** 必填（最多 5 个）——vue-multiselect 是 toggle 行为：**单会话只能稳定选 1 个**，每会话选完即存（草稿 autosave），选重复会取消
+   - **Media**：上传截图 + 点 ADD → ajax-loader 转完出现 Delete 缩略图才算成功。⚠️ 三个坑：(a) 抓取步骤会预附着站点 og-image（很多是纯色背景图），要删掉重传真实截图；(b) **无头自动化环境下图片上传不可靠**——实测仅个别成功，其余 ADD 后 policy 请求不发出或 XHR 挂起（已排除：会员限制——用户手动上传正常、自动化检测——有头模式同样失败、og 占位、会话切分）；(c) 失败会残留"转圈中"的幽灵条目，需先 Delete 再传。**纪律：此渠道的媒体上传默认交给用户手动完成**（素材在 assets/<域名>/），自动化仅做文字字段
+   - **Built-with**：必填至少一项技术栈（Languages 搜 javascript）
+   - **Metrics**：可全跳过（没有真实流量数据不要编）
+   - **Sale discussion**："愿意讨论出售" 默认勾选——这是业务立场，保留默认并在报告里提醒用户可改
+   - **Confirm**：勾真实性声明 + 开 ComingUp 免费同步开关（sr-only checkbox，在 ComingUp 卡片内；开启后 SP 过审会自动提交到 comingup.io）→ Next → 🎉 done，2-3 天审核
+4. **审核期项目页私密**：公开访客看 `/project/<id>` 是 "Project not found"，**验证外链必须用匿名视角**（无登录态上下文），审核通过后重新验证
+5. **提交后编辑**：`/submit/project/<id>/media` 等向导页对已提交项目仍可访问，改动后点 "Save & Publish Later" 保存
+6. 批量修复媒体用 `scripts/fix_media.py`（删 og 引用 → 传真实截图 → 验证 R2 存储路径 → 保存）
+
 ## 通用流程（每个渠道都走这一遍）
 
 1. 开后台窗口 → 首页 → 读 innerText 判登录态

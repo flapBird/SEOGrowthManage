@@ -9,7 +9,7 @@ from .config import BASE_DIR, get_settings
 from .database import Base, engine, migrate_legacy_channel_credentials, run_lightweight_migrations
 from .security import CredentialCipher
 from .web import public_router, router
-from .keyword_web import router as keyword_router
+from .itch_web import router as itch_router
 from .extension_api import router as extension_api_router
 from .extension_web import router as extension_web_router
 
@@ -34,7 +34,7 @@ app = FastAPI(title=settings.app_name, lifespan=lifespan, docs_url=None, redoc_u
 app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="static")
 app.include_router(public_router)
 app.include_router(router)
-app.include_router(keyword_router)
+app.include_router(itch_router)
 app.include_router(extension_web_router)
 app.include_router(extension_api_router)
 

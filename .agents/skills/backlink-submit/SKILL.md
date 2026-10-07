@@ -30,6 +30,15 @@ description: 外链提交技能。当用户说"提交外链/发外链/跑一轮�
 - `data/backlink_submit/config.json` —— 服务端地址 + token + project_id
 - `data/backlink_submit/ledger.json` —— 本地台账（脚本 `api.py ledger-set` 维护，勿手改）
 - `data/backlink_submit/reports/<date>.md` —— 本轮中文报告
+- `data/backlink_submit/channel_tiers.json/md` —— 279 渠道分级（排除付费/勋章/回挂链接后按票数分高/中/低；重跑 `scripts/build_tiers.py` 刷新状态）
+- `data/backlink_submit/channel_entries.json/md` —— 高/中票渠道发布入口 × 登录要求统计（重跑 `scripts/gen_entries.py` 刷新）
+
+## 已固化的渠道与工具
+
+- **SideProjectors（参考渠道，2026-09 跑通 14 站）**：批量提交用 `scripts/sp_run.py`（一个站点一份 JSON 配置跑完建草稿→填表→markets→截图→技术栈→确认→提交→回写），媒体修复用 `scripts/fix_media.py`。逐阶段手册与坑位见 `references/playbook.md` 的 SideProjectors 节。新渠道跑通后按同样方式沉淀
+- **媒体纪律**：SP 项目媒体会被 og-image 自动引用污染——附着的图必须是 `r2.dev/production` 存储路径才算真截图；**无头自动化下图片上传不可靠（实测多数失败，用户手动正常）→ 文件上传类操作默认请用户手动完成**，自动化只做文字字段；失败会残留"转圈中"幽灵条目需先删
+- **素材文件夹**：`data/backlink_submit/assets/<域名>/`（icon.png ≥256×256、screenshot-1/2.png）——用户准备的图优先，现场截图兜底；命名规范见 assets/README.md。提交流程自动按域名取图
+- **验证纪律**：外链验证一律用**匿名视角**（无登录态），审核期项目页对公开访客是 "Project not found"，登录态主人视角会误判
 
 ## 执行步骤
 

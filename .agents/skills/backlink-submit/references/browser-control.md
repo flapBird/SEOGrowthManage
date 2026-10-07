@@ -1,6 +1,19 @@
 # 浏览器控制：本机谷歌 Chrome（backlink-submit）
 
-提交外链必须用用户本机的 Google Chrome（登录态都在里面）。所有动作走后台窗口，绝不占用用户当前标签页，用完关闭自己开的窗口。
+## 零打扰原则（最高优先级，2026-09-19 实测教训）
+
+**绝不通过 AppleScript 驱动用户正在使用的 Chrome**——新建窗口、切标签页、最小化窗口都会打断用户操作，用户明确投诉过。唯一正确方式：
+
+- 用 `scripts/browser.py`（Playwright `channel="chrome"` + `headless=True` + 独立 profile `~/.seo-chrome-profile`）驱动**本机 Google Chrome 本体**：同一浏览器、无窗口、独立配置目录，登录态在 profile 里持久化
+- 命令：`browser.py open <url>` / `browser.py run <url> '<js>'` / `browser.py text <url>`；JS 写单行 IIFE 返回 `JSON.stringify(...)`
+- **需要用户登录时**：让用户跑 `open -na "Google Chrome" --args --user-data-dir=$HOME/.seo-chrome-profile --no-first-run` 在同一 profile 里登录（此时暂停 browser.py 调用避免 profile 锁冲突），登录完用户 Cmd+Q 该实例后继续无头驱动
+- osascript 方案仅保留作历史参考，不再使用
+
+## （历史方案）L1 osascript 执行 JS —— 已弃用
+
+~~提交外链必须用用户本机的 Google Chrome（登录态都在里面）。所有动作走后台窗口，绝不占用用户当前标签页，用完关闭自己开的窗口。~~
+
+以下旧内容仅供参考，不要再执行。
 
 ## 每轮开始前的检查（只做一次）
 
