@@ -10,6 +10,7 @@ from .database import Base, engine, migrate_legacy_channel_credentials, run_ligh
 from .security import CredentialCipher
 from .web import public_router, router
 from .itch_web import router as itch_router
+from .itch_api import router as itch_api_router
 from .extension_api import router as extension_api_router
 from .extension_web import router as extension_web_router
 
@@ -35,6 +36,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "app" / "static"), name="s
 app.include_router(public_router)
 app.include_router(router)
 app.include_router(itch_router)
+app.include_router(itch_api_router)
 app.include_router(extension_web_router)
 app.include_router(extension_api_router)
 

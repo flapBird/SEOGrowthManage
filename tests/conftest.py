@@ -9,6 +9,7 @@ os.environ.setdefault("SESSION_SECRET", "test-session-secret-at-least-32-charact
 os.environ.setdefault("FERNET_KEY", Fernet.generate_key().decode())
 os.environ.setdefault("DATABASE_URL", "sqlite:////tmp/backlink_manager_test.db")
 os.environ.setdefault("SCHEDULER_ENABLED", "false")
+os.environ.setdefault("ITCH_RADAR_API_KEY", "test-itch-api-key")
 
 import pytest
 from fastapi.testclient import TestClient

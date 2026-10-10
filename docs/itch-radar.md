@@ -28,6 +28,30 @@ itch.io 官方 RSS（每 5 分钟轮询，仅 1 个请求）
 - **质量提醒**：详情补全后会检查封面、简介长度、是否正式发布（Released）、
   平台是否标注 HTML5，不满足的卡片有黄色提示，是否采用由人工判断。
 - **状态流转**：待补全(new) → 已就绪(ready) → 已用于 PlayBloo(used) / 已忽略(skipped)。
+- **批量标记已用**：卡片右上角有勾选框，汇总栏可「全选本页」，一键把勾选的游戏全部标记为已用；
+  做完一批页面后勾选对应游戏即可，不用逐个点。
+
+## 聚合站回写接口（可选）
+
+PlayBloo 批量建页后，可以调接口把游戏标记为「已用于 PlayBloo」，避免手动勾选。
+
+- 先在服务器 `.env` 配置 `ITCH_RADAR_API_KEY=<自定义密钥>`（留空 = 接口关闭）。
+- 请求：
+
+  ```bash
+  curl -X POST https://你的域名/api/itch/mark-used \
+       -H "X-API-Key: <ITCH_RADAR_API_KEY>" \
+       -H "Content-Type: application/json" \
+       -d '{"date": "2026-10-07"}'
+  ```
+
+- 请求体三种模式（JSON）：
+  - `{"date": "YYYY-MM-DD"}` —— 标记某一天的全部游戏；
+  - `{"date": "YYYY-MM-DD", "urls": [...]}` —— 只标记当天里指定的游戏；
+  - `{"urls": [...]}` —— 按游戏页 URL 标记（自动归一化，带 query/尾斜杠都能匹配）。
+- 返回 `{"marked": <新标记数量>, "not_found": [...]}`（not_found 仅在传 urls 时返回，
+  列出库里没有的 URL）；已是"已用"状态的游戏不会重复计数。
+- 鉴权也支持 `Authorization: Bearer <key>`；密钥错误返回 401，服务端未配置密钥返回 403。
 - **导出当日 Markdown**：生成一份可直接交给 AI 的材料（标题、URL、作者、
   上架时间、类型标签、简介、封面/截图、建议关键词、质量提醒），
   AI 据此为 PlayBloo 生成独立详情页。
@@ -43,6 +67,7 @@ itch.io 官方 RSS（每 5 分钟轮询，仅 1 个请求）
 | `ITCH_RADAR_DETAIL_DELAY_SECONDS` | `4` | 详情页请求间隔（itch 会 429 限流，勿调太低） |
 | `ITCH_RADAR_MAX_RETRIES` | `1` | 429 时的退避重试次数 |
 | `ITCH_RADAR_PROXY` | 空 | 出口代理（如 `http://127.0.0.1:7890`）；留空跟随 HTTP(S)_PROXY 环境变量 |
+| `ITCH_RADAR_API_KEY` | 空 | 聚合站回写接口 `POST /api/itch/mark-used` 的密钥；留空 = 接口关闭 |
 
 ## 部署注意
 

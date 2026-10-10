@@ -16,11 +16,21 @@
   <a class="button" href="/itch?date={{ today }}">回到今天</a>
 </form>
 
-<section class="itch-summary panel"><strong>{{ day }}</strong> 共 {{ games|length }} 款 · 待补全 {{ games|selectattr('status.value', 'equalto', 'new')|list|length }} · 已就绪 {{ games|selectattr('status.value', 'equalto', 'ready')|list|length }} · 已用 {{ games|selectattr('status.value', 'equalto', 'used')|list|length }}</section>
+<section class="itch-summary panel">
+  <form id="itch-batch-form" method="post" action="/itch/batch-status" class="itch-batch">
+    <input type="hidden" name="back" value="{{ query_suffix }}">
+    <label class="itch-select-all"><input type="checkbox" id="itch-select-all"> 全选本页</label>
+    <strong>{{ day }}</strong>
+    <span>共 {{ games|length }} 款 · 待补全 {{ games|selectattr('status.value', 'equalto', 'new')|list|length }} · 已就绪 {{ games|selectattr('status.value', 'equalto', 'ready')|list|length }} · 已用 {{ games|selectattr('status.value', 'equalto', 'used')|list|length }}</span>
+    <span id="itch-picked-count" class="itch-picked"></span>
+    <button id="itch-batch-submit" class="button" type="submit" disabled>批量标记已用</button>
+  </form>
+</section>
 
 <section class="itch-grid">
 {% for game in games %}
   <article class="itch-card panel {{ 'itch-warn' if game.detail_fetched_at and not game.quality_ok }}">
+    <input type="checkbox" class="itch-pick" value="{{ game.id }}" aria-label="选择 {{ game.title }}">
     <a class="itch-cover" href="{{ game.url }}" target="_blank" rel="noopener">
       {% if game.cover_url %}<img src="{{ game.cover_url }}" loading="lazy" alt="{{ game.title }}">
       {% else %}<div class="itch-cover-empty">无封面</div>{% endif %}
@@ -54,4 +64,45 @@
   <section class="panel empty-day"><p class="empty">这一天还没有入库的游戏。可以「立即抓取一轮」，或选其他日期查看。</p></section>
 {% endfor %}
 </section>
+{% if games %}
+<script>
+  (function () {
+    var batchForm = document.getElementById('itch-batch-form');
+    var selectAll = document.getElementById('itch-select-all');
+    var submitBtn = document.getElementById('itch-batch-submit');
+    var pickedCount = document.getElementById('itch-picked-count');
+    if (!batchForm || !selectAll) return;
+    var picked = function () { return document.querySelectorAll('input.itch-pick:checked'); };
+    var sync = function () {
+      var n = picked().length;
+      pickedCount.textContent = n ? '已选 ' + n + ' 款' : '';
+      submitBtn.disabled = !n;
+    };
+    selectAll.addEventListener('change', function () {
+      document.querySelectorAll('input.itch-pick').forEach(function (cb) { cb.checked = selectAll.checked; });
+      sync();
+    });
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains('itch-pick')) {
+        var all = document.querySelectorAll('input.itch-pick');
+        selectAll.checked = all.length > 0 && picked().length === all.length;
+        sync();
+      }
+    });
+    // 卡片勾选框不在表单内（卡片里已有操作小表单，避免嵌套 form），提交时收集进隐藏域
+    batchForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      picked().forEach(function (cb) {
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'game_id';
+        hidden.value = cb.value;
+        batchForm.appendChild(hidden);
+      });
+      batchForm.submit();
+    });
+    sync();
+  })();
+</script>
+{% endif %}
 {% endblock %}

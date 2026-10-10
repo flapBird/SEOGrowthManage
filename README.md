@@ -60,6 +60,9 @@
 - 每 5 分钟轮询 itch 官方 RSS（`/games/newest/free/html5/platform-web.xml`，即 browse 页加 `.xml`），通过游戏 URL 去重入库，记录 itch 精确上架时间与本地发现时间。
 - 新游戏按轮限量补全详情页（作者、类型、标签、平台、截图、精确发布时间），请求间隔与 429 退避可配置；失败的记录留在「待补全」状态，下一轮自动重试。
 - 轻质量门槛检查封面、简介长度、发布状态和 HTML5 平台标注，结果展示在页面上供人工取舍。
+- **批量标记已用**：卡片可勾选、可全选本页，一键标记；另提供回写接口
+  `POST /api/itch/mark-used`（`ITCH_RADAR_API_KEY` 鉴权），供 PlayBloo 批量建页后
+  按日期或按 URL 批量回写状态，详见 [itch-radar.md](docs/itch-radar.md)。
 - 系统只负责发现和交付：每天在 `/itch` 页面导出当日 Markdown（含建议关键词），交给 AI 为 PlayBloo 生成独立页面，系统不做自动发布。
 
 ## 核心目录与职责

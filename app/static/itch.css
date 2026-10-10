@@ -13,6 +13,17 @@
 
 .itch-summary { padding: 10px 16px; margin-bottom: 14px; color: var(--muted, #55617a); }
 
+/* 批量标记栏 */
+.itch-batch { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.itch-batch .itch-select-all { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink, #17211b); cursor: pointer; }
+.itch-batch input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+.itch-batch .itch-picked { color: #175cd3; font-weight: 700; }
+.itch-batch button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* 卡片右上角的勾选框 */
+.itch-card { position: relative; }
+.itch-pick { position: absolute; top: 12px; right: 12px; width: 18px; height: 18px; accent-color: #2b4ea2; cursor: pointer; z-index: 1; }
+
 .itch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 14px; }
 .itch-card { display: flex; gap: 14px; padding: 14px; }
 .itch-card.itch-warn { border: 1px solid #e6b34d; }

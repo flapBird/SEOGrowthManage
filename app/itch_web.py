@@ -128,6 +128,19 @@ def itch_status(game_id: int, db: Db, status: Annotated[str, Form()], back: Anno
     return redirect(target, f"《{game.title}》已标记为 {STATUS_LABELS[game.status]}")
 
 
+@router.post("/itch/batch-status")
+def itch_batch_status(db: Db, game_id: Annotated[list[int], Form()] = [], back: Annotated[str, Form()] = ""):
+    """把勾选的游戏批量标记为「已用于 PlayBloo」。"""
+    target = f"/itch?{back}" if back else "/itch"
+    if not game_id:
+        return redirect(target, "未勾选任何游戏")
+    games = db.scalars(select(ItchGame).where(ItchGame.id.in_(game_id))).all()
+    for game in games:
+        game.status = ItchGameStatus.used
+    db.commit()
+    return redirect(target, f"已将 {len(games)} 款游戏标记为已用于 PlayBloo")
+
+
 @router.get("/itch/export")
 def itch_export(db: Db, date: str = ""):
     day = _parse_day(date)

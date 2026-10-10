@@ -137,6 +137,53 @@ def test_poll_feeds_upsert(monkeypatch):
     asyncio.run(scenario())
 
 
+def test_itch_batch_status_and_api(authenticated_client):
+    import asyncio
+    from datetime import datetime
+
+    async def seed():
+        with SessionLocal() as db:
+            db.add_all([
+                ItchGame(url="https://a.itch.io/game-a", title="A", itch_published_at=datetime(2026, 10, 7, 10, 0, 0)),
+                ItchGame(url="https://b.itch.io/game-b", title="B", itch_published_at=datetime(2026, 10, 7, 11, 0, 0)),
+                ItchGame(url="https://c.itch.io/game-c", title="C", itch_published_at=datetime(2026, 10, 8, 10, 0, 0)),
+            ])
+            db.commit()
+
+    asyncio.run(seed())
+    client = authenticated_client
+
+    # 页面批量标记：勾选 A、B
+    resp = client.post("/itch/batch-status",
+                       data={"game_id": ["1", "2"], "back": "date=2026-10-07"},
+                       follow_redirects=False)
+    assert resp.status_code == 303
+    with SessionLocal() as db:
+        statuses = {g.url: g.status for g in db.scalars(select(ItchGame)).all()}
+    assert statuses["https://a.itch.io/game-a"] == ItchGameStatus.used
+    assert statuses["https://b.itch.io/game-b"] == ItchGameStatus.used
+    assert statuses["https://c.itch.io/game-c"] == ItchGameStatus.new
+
+    # 接口：错误 key → 401
+    assert client.post("/api/itch/mark-used", json={"date": "2026-10-08"},
+                       headers={"X-API-Key": "wrong"}).status_code == 401
+    # 接口：空载荷 → 422
+    assert client.post("/api/itch/mark-used", json={}, headers={"X-API-Key": "test-itch-api-key"}).status_code == 422
+    # 接口：按日期标记 10-08 的 C
+    resp = client.post("/api/itch/mark-used", json={"date": "2026-10-08"},
+                       headers={"X-API-Key": "test-itch-api-key"})
+    assert resp.status_code == 200 and resp.json() == {"marked": 1}
+    # 接口：按 URL 标记（已 used 的不重复计数 + 未匹配清单）
+    resp = client.post("/api/itch/mark-used", json={"urls": [
+        "https://a.itch.io/game-a?utm=x",          # 已是 used，不计入 marked
+        "https://a.itch.io/game-a/",               # 归一化后同上
+        "https://unknown.itch.io/missing",         # 库里没有
+    ]}, headers={"X-API-Key": "test-itch-api-key"})
+    body = resp.json()
+    assert resp.status_code == 200 and body["marked"] == 0
+    assert body["not_found"] == ["https://unknown.itch.io/missing"]
+
+
 def test_itch_list_page_and_export(authenticated_client):
     import asyncio
     from datetime import datetime

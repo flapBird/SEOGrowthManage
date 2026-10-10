@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     itch_radar_max_retries: int = Field(default=1, ge=0, le=5)
     # 出口代理（如本机 http://127.0.0.1:7890）；留空则跟随 HTTP(S)_PROXY 环境变量。
     itch_radar_proxy: str = ""
+    # 聚合站回写接口（POST /api/itch/mark-used）的静态密钥；留空表示接口关闭。
+    itch_radar_api_key: str = ""
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env", env_file_encoding="utf-8", extra="ignore"
