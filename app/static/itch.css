@@ -15,7 +15,7 @@
 
 /* 批量标记栏 */
 .itch-batch { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.itch-batch .itch-select-all { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink, #17211b); cursor: pointer; }
+.itch-batch .itch-select-all { display: flex; flex-direction: row; align-items: center; gap: 6px; font-weight: 700; color: var(--ink, #17211b); cursor: pointer; }
 .itch-batch input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
 .itch-batch .itch-picked { color: #175cd3; font-weight: 700; }
 .itch-batch button:disabled { opacity: 0.45; cursor: not-allowed; }

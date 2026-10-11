@@ -85,6 +85,18 @@ def encode_link_rel(value: str) -> str | None:
 
 
 templates = Jinja2Templates(directory=BASE_DIR / "app" / "templates")
+
+
+def _static_version(name: str) -> str:
+    """静态资源的缓存版本号 = 文件修改时间戳：每次部署文件一变，URL 自动失效，
+    避免浏览器拿旧 CSS/JS 渲染新页面（之前 itch.css 手动版本号漏升就出过事故）。"""
+    try:
+        return str(int((BASE_DIR / "app" / "static" / name).stat().st_mtime))
+    except OSError:
+        return "0"
+
+
+templates.env.globals["static_v"] = _static_version
 templates.env.globals.update(
     channel_type_labels=CHANNEL_TYPE_LABELS,
     channel_type_display=channel_type_display,
