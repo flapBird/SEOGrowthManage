@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import httpx
 from sqlalchemy import select
@@ -22,6 +22,7 @@ from ..models import ItchGame, ItchGameStatus, now_local
 from .parse import (
     DEFAULT_USER_AGENT,
     ItchFeedItem,
+    SHANGHAI,
     derive_keywords,
     evaluate_quality,
     normalize_game_url,
@@ -93,12 +94,42 @@ async def _get_polite(client: httpx.AsyncClient, url: str) -> httpx.Response:
     raise RuntimeError("unreachable")  # pragma: no cover
 
 
+def _ingested_today(db: Session) -> int:
+    """今天（东八区）新收录的游戏数，作为每日配额的已用量。
+
+    按 discovered_at（收录日）计数而不是 itch 上架日：New & Popular 榜单里的
+    游戏发布日期跨度很大，配额必须数"今天收进来多少款"才封得住。
+    """
+    from sqlalchemy import func, select
+
+    today = datetime.now(SHANGHAI).date().isoformat()
+    return db.scalar(select(func.count(ItchGame.id)).where(func.date(ItchGame.discovered_at) == today)) or 0
+
+
 async def poll_feeds(db: Session) -> dict:
-    """抓取全部配置的 RSS feed，把新游戏 upsert 进 itch_games。"""
+    """抓取全部配置的 RSS feed，把新游戏 upsert 进 itch_games。
+
+    每日配额：itch_radar_daily_limit 限制"每天新收录多少款"（按榜单顺序优先收录
+    排名靠前的）；已达上限时本轮直接跳过，不再发请求。已入库的游戏只刷新
+    last_seen_at，不占配额——天然实现"前面日子抓到过的不再收录"。
+    """
+    settings = get_settings()
     feeds = configured_feeds()
     seen = 0
     created = 0
     errors: list[str] = []
+    daily_limit = settings.itch_radar_daily_limit
+    quota_note = None
+    if daily_limit > 0:
+        remaining = daily_limit - _ingested_today(db)
+        if remaining <= 0:
+            return {
+                "feeds": len(feeds), "seen": 0, "created": 0, "errors": errors,
+                "note": f"今日已收录满 {daily_limit} 款，本轮跳过",
+            }
+    else:
+        remaining = None  # 不限量
+
     async with _make_client() as client:
         for feed_url in feeds:
             try:
@@ -111,6 +142,9 @@ async def poll_feeds(db: Session) -> dict:
                 seen += 1
                 game = db.scalar(select(ItchGame).where(ItchGame.url == item.url))
                 if game is None:
+                    if remaining is not None and created >= remaining:
+                        quota_note = f"今日配额 {daily_limit} 款已用完，本轮余下条目未收录"
+                        break
                     game = ItchGame(
                         url=item.url,
                         title=item.title or item.url.rsplit("/", 1)[-1],
@@ -119,6 +153,8 @@ async def poll_feeds(db: Session) -> dict:
                         price=item.price,
                         source_feed=feed_url,
                         itch_published_at=item.published_at,
+                        # 收录时间统一记东八区，保证"每日配额/每日批次"按北京时间翻篇
+                        discovered_at=datetime.now(SHANGHAI).replace(tzinfo=None),
                         platforms_json=_json(item.platforms) or None,
                         status=ItchGameStatus.new,
                     )
@@ -127,7 +163,10 @@ async def poll_feeds(db: Session) -> dict:
                 else:
                     game.last_seen_at = now_local()
             db.commit()
-    return {"feeds": len(feeds), "seen": seen, "created": created, "errors": errors}
+    result = {"feeds": len(feeds), "seen": seen, "created": created, "errors": errors}
+    if quota_note:
+        result["note"] = quota_note
+    return result
 
 
 async def enrich_game(db: Session, game: ItchGame, client: httpx.AsyncClient) -> bool:

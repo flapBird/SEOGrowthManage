@@ -13,7 +13,7 @@ from app.itch_radar.parse import (
     parse_game_page,
     parse_itch_rss,
 )
-from app.models import ItchGame, ItchGameStatus
+from app.models import ItchGame, ItchGameStatus, now_local
 
 
 RSS_SAMPLE = """<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>
@@ -137,6 +137,65 @@ def test_poll_feeds_upsert(monkeypatch):
     asyncio.run(scenario())
 
 
+def test_poll_feeds_daily_quota(monkeypatch):
+    """每日配额：当天已收录满则跳过；未满按榜单顺序收录；往日游戏不占额度。"""
+    import asyncio
+    from datetime import timedelta
+
+    from app.config import get_settings
+
+    async def fake_download(client, url, retries=None):
+        return RSS_SAMPLE.encode()
+
+    monkeypatch.setattr("app.itch_radar.fetcher._download_with_retry", fake_download)
+
+    async def seed_today(count: int):
+        with SessionLocal() as db:
+            for i in range(count):
+                db.add(ItchGame(url=f"https://seed.itch.io/today-{i}", title=f"T{i}",
+                                itch_published_at=now_local()))
+            db.commit()
+
+    async def seed_yesterday(count: int):
+        with SessionLocal() as db:
+            for i in range(count):
+                yesterday = now_local() - timedelta(days=1)
+                db.add(ItchGame(url=f"https://seed.itch.io/old-{i}", title=f"O{i}",
+                                itch_published_at=yesterday, discovered_at=yesterday))
+            db.commit()
+
+    # A) 配额 1，当天已收录 1 款 → 满员，直接跳过且不发请求
+    async def boom(client, url, retries=None):
+        raise AssertionError("配额满员时不应发起请求")
+
+    monkeypatch.setattr(get_settings(), "itch_radar_daily_limit", 1)
+    asyncio.run(seed_today(1))
+    monkeypatch.setattr("app.itch_radar.fetcher._download_with_retry", boom)
+    with SessionLocal() as db:
+        result = asyncio.run(poll_feeds(db))
+    assert result["created"] == 0 and "跳过" in result["note"]
+
+    # B) 配额 2，当天已收录 1 款 → 只收榜单第 1 个新游戏，第 2 个不收
+    asyncio.run(seed_yesterday(1))  # 往日游戏不应影响今天的配额
+    monkeypatch.setattr(get_settings(), "itch_radar_daily_limit", 2)
+    monkeypatch.setattr("app.itch_radar.fetcher._download_with_retry", fake_download)
+    with SessionLocal() as db:
+        result = asyncio.run(poll_feeds(db))
+    assert result["created"] == 1  # 只收 clawtastrophe，wizza 因配额用尽被跳过
+    urls = {g.url for g in db.scalars(select(ItchGame)).all()}
+    assert "https://pgskizzes.itch.io/clawtastrophe" in urls
+    assert "https://froggacuda.itch.io/wizza" not in urls
+
+    # C) 已入库的游戏重复出现不占额度：今天已收录 2 款（seed + clawtastrophe），
+    #    配额给 3 → 剩 1 个名额；clawtastrophe 重复出现只刷新 last_seen，名额留给 wizza
+    monkeypatch.setattr(get_settings(), "itch_radar_daily_limit", 3)
+    with SessionLocal() as db:
+        result = asyncio.run(poll_feeds(db))
+    assert result["created"] == 1  # wizza 补上（clawtastrophe 是去重不算新增）
+    urls = {g.url for g in db.scalars(select(ItchGame)).all()}
+    assert "https://froggacuda.itch.io/wizza" in urls
+
+
 def test_itch_batch_status_and_api(authenticated_client):
     import asyncio
     from datetime import datetime
@@ -144,9 +203,12 @@ def test_itch_batch_status_and_api(authenticated_client):
     async def seed():
         with SessionLocal() as db:
             db.add_all([
-                ItchGame(url="https://a.itch.io/game-a", title="A", itch_published_at=datetime(2026, 10, 7, 10, 0, 0)),
-                ItchGame(url="https://b.itch.io/game-b", title="B", itch_published_at=datetime(2026, 10, 7, 11, 0, 0)),
-                ItchGame(url="https://c.itch.io/game-c", title="C", itch_published_at=datetime(2026, 10, 8, 10, 0, 0)),
+                ItchGame(url="https://a.itch.io/game-a", title="A",
+                         itch_published_at=datetime(2026, 10, 7, 10, 0, 0), discovered_at=datetime(2026, 10, 7, 10, 0, 0)),
+                ItchGame(url="https://b.itch.io/game-b", title="B",
+                         itch_published_at=datetime(2026, 10, 7, 11, 0, 0), discovered_at=datetime(2026, 10, 7, 11, 0, 0)),
+                ItchGame(url="https://c.itch.io/game-c", title="C",
+                         itch_published_at=datetime(2026, 10, 8, 10, 0, 0), discovered_at=datetime(2026, 10, 8, 10, 0, 0)),
             ])
             db.commit()
 
@@ -194,7 +256,7 @@ def test_itch_list_page_and_export(authenticated_client):
                 url="https://demo.itch.io/demo-game", title="Demo Game", author="demodev",
                 description="A demo browser game long enough for export rendering.",
                 status=ItchGameStatus.ready,
-                itch_published_at=datetime(2026, 10, 6, 21, 0, 0),
+                itch_published_at=datetime(2026, 10, 6, 21, 0, 0), discovered_at=datetime(2026, 10, 6, 21, 0, 0),
                 genre_json='["Puzzle"]', tags_json='["cozy"]', platforms_json='["HTML5"]',
                 keywords_json='["Demo Game online", "cozy"]', quality_json='{"ok": true, "notes": []}',
             ))

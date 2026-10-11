@@ -7,8 +7,9 @@ Markdown 交给任意 AI 完成，系统不做自动发布。
 ## 数据流
 
 ```
-itch.io 官方 RSS（每 5 分钟轮询，仅 1 个请求）
-   ↓  URL 去重入库（记录 itch 上架时间 / 发现时间）
+itch.io「New & Popular」官方 RSS（每 5 分钟轮询，仅 1 个请求）
+   ↓  每日配额（默认 10 款/天，按榜单顺序优先收录排名靠前的）
+   ↓  URL 去重入库（前面日子抓到过的不再收录，也不占当日配额）
 详情页补全（每轮限量 10 款、间隔 4 秒、429 退避；失败留待下轮自动重试）
    ↓  作者 / 类型 / 标签 / 平台 / 截图 / 精确上架时间 / 质量门槛评估
 /itch 页面（默认展示今天，可翻日期、按状态筛选）
@@ -16,14 +17,15 @@ itch.io 官方 RSS（每 5 分钟轮询，仅 1 个请求）
 人工粘贴给 AI → PlayBloo 建页 → 回系统把该游戏标记为「已用于 PlayBloo」
 ```
 
-数据源默认为 `https://itch.io/games/newest/free/html5/platform-web.xml`
-（itch 官方 browse 页加 `.xml` 即 RSS，标题"Latest free HTML5 games for Web"，
-每页 36 条）。5 分钟一轮意味着 itch 上架后约 5 分钟内进入系统；36 条的窗口
-足够小时级轮询不漏游戏。
+数据源默认为 `https://itch.io/games/new-and-popular/free/platform-web.xml`
+（itch「New & Popular」榜单，免费网页游戏）。早期版本用的
+`/games/newest/free/html5/platform-web.xml`（newest 全量）每天真实上新 300+ 款，
+无法人工消化，已替换为精选榜单 + 每日配额的模式；想换回全量或叠加其他源，
+改 `ITCH_RADAR_FEEDS`（逗号分隔）即可。
 
 ## 页面用法
 
-- **立即抓取一轮**：手动触发一次"RSS 轮询 + 详情补全"，首次使用点它即可快速入库。
+- **立即抓取一轮**：手动触发一次"RSS 轮询 + 详情补全"，首次使用点它即可按当日配额快速收录榜单前 10 款。
 - **日期切换 / 状态筛选 / 搜索**：默认展示今天（东八区）上架的游戏。
 - **质量提醒**：详情补全后会检查封面、简介长度、是否正式发布（Released）、
   平台是否标注 HTML5，不满足的卡片有黄色提示，是否采用由人工判断。
@@ -62,7 +64,8 @@ PlayBloo 批量建页后，可以调接口把游戏标记为「已用于 PlayBlo
 | --- | --- | --- |
 | `ITCH_RADAR_ENABLED` | `true` | 总开关（关闭则不注册定时任务） |
 | `ITCH_RADAR_POLL_INTERVAL_SECONDS` | `300` | RSS 轮询间隔（≥60） |
-| `ITCH_RADAR_FEEDS` | newest/free/html5/platform-web.xml | 逗号分隔可配多个 feed，如再叠加 `/games/newest/free/platform-web.xml` |
+| `ITCH_RADAR_FEEDS` | new-and-popular/free/platform-web.xml | 逗号分隔可配多个 feed |
+| `ITCH_RADAR_DAILY_LIMIT` | `10` | 每天最多新收录多少款（按榜单顺序收录；0 = 不限量）；当天已达上限时轮询直接跳过，往日已收录的游戏重复出现不占额度 |
 | `ITCH_RADAR_DETAIL_BATCH` | `10` | 每轮最多补全多少款详情（0=只发现不补全） |
 | `ITCH_RADAR_DETAIL_DELAY_SECONDS` | `4` | 详情页请求间隔（itch 会 429 限流，勿调太低） |
 | `ITCH_RADAR_MAX_RETRIES` | `1` | 429 时的退避重试次数 |

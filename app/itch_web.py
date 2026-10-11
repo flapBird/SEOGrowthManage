@@ -50,15 +50,9 @@ def _parse_day(value: str) -> date:
 
 
 def _day_expression():
-    """上架日（缺则发现日）作为"每日一批"的归组依据。"""
-    return func.coalesce(
-        func.date(ItchGame.itch_published_at), func.date(ItchGame.discovered_at)
-    )
-
-
-def _published_expression():
-    """排序用：上架时间（缺则发现时间）。"""
-    return func.coalesce(ItchGame.itch_published_at, ItchGame.discovered_at)
+    """「某一天」= 收录日（发现日）：配额、页面分组、导出、回写接口共用这个口径，
+    保证"每天打开页面看到当天收录的批次"。itch 原始上架时间保留在卡片上展示。"""
+    return func.date(ItchGame.discovered_at)
 
 
 def _day_query(db: Session, day: date, status: str, q: str):
@@ -68,7 +62,7 @@ def _day_query(db: Session, day: date, status: str, q: str):
     if q:
         stmt = stmt.where(ItchGame.title.contains(q) | ItchGame.url.contains(q))
     return db.scalars(
-        stmt.order_by(_published_expression().desc(), ItchGame.id.desc()).limit(300)
+        stmt.order_by(ItchGame.discovered_at.desc(), ItchGame.id.desc()).limit(300)
     ).all()
 
 
@@ -99,6 +93,8 @@ def itch_list(request: Request, db: Db, date: str = "", status: str = "", q: str
 async def itch_run():
     summary = await run_radar_cycle()
     message = f"本轮扫描 {summary['feeds']} 个源、看到 {summary['seen']} 条，新入库 {summary['created']} 款，补全详情 {summary['enriched']} 款"
+    if summary.get("note"):
+        message += f"；{summary['note']}"
     if summary["errors"]:
         message += f"；失败 {len(summary['errors'])} 个源: {summary['errors'][0][:120]}"
     return redirect("/itch", message)

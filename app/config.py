@@ -26,7 +26,10 @@ class Settings(BaseSettings):
     # （itch 前置 WAF 会 429 限流，详情页抓取是主要风险点）。
     itch_radar_enabled: bool = True
     itch_radar_poll_interval_seconds: int = Field(default=300, ge=60)
-    itch_radar_feeds: str = "https://itch.io/games/newest/free/html5/platform-web.xml"
+    # 默认盯「New & Popular」榜单而不是 newest 全量：新游雷达每天只收录榜单里
+    # 前 itch_radar_daily_limit 款，避免 300+/天的洪水（newest 每天真实上新 300+）。
+    itch_radar_feeds: str = "https://itch.io/games/new-and-popular/free/platform-web.xml"
+    itch_radar_daily_limit: int = Field(default=10, ge=0, le=1000)
     itch_radar_detail_batch: int = Field(default=10, ge=0, le=100)
     itch_radar_detail_delay_seconds: float = Field(default=4.0, ge=0.5, le=60)
     itch_radar_max_retries: int = Field(default=1, ge=0, le=5)

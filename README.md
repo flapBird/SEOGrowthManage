@@ -57,7 +57,8 @@
 ### 6. itch.io 新游雷达
 
 - `app/itch_radar/` 与 `app/itch_web.py` 组成独立的 itch.io 新游发现模块，详见 [itch-radar.md](docs/itch-radar.md)。
-- 每 5 分钟轮询 itch 官方 RSS（`/games/newest/free/html5/platform-web.xml`，即 browse 页加 `.xml`），通过游戏 URL 去重入库，记录 itch 精确上架时间与本地发现时间。
+- 每 5 分钟轮询 itch「New & Popular」官方 RSS，每天最多收录榜单前 10 款（可配），
+  通过游戏 URL 去重，前面日子抓到过的不再收录；记录 itch 精确上架时间与本地发现时间。
 - 新游戏按轮限量补全详情页（作者、类型、标签、平台、截图、精确发布时间），请求间隔与 429 退避可配置；失败的记录留在「待补全」状态，下一轮自动重试。
 - 轻质量门槛检查封面、简介长度、发布状态和 HTML5 平台标注，结果展示在页面上供人工取舍。
 - **批量标记已用**：卡片可勾选、可全选本页，一键标记；另提供回写接口
