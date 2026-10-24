@@ -1,0 +1,34 @@
+name: deploy
+
+# push 到 main 即自动部署：SSH 登录服务器执行 scripts/deploy/deploy.sh
+# （git pull → docker compose up -d --build → 健康检查失败自动回滚）。
+# 启用前需在 GitHub 仓库 Settings → Secrets and variables → Actions 配置：
+#   DEPLOY_HOST   服务器公网 IP
+#   DEPLOY_USER   服务器 SSH 用户（建议专用部署用户，需在 docker 组）
+#   DEPLOY_SSH_KEY部署用户的 SSH 私钥（整段，含 BEGIN/END 行）
+#   DEPLOY_DIR    服务器上仓库的绝对路径（如 /opt/SEOGrowthManage）
+# 没配密钥前本 workflow 会失败，属正常；配好即生效。也可暂时禁用本文件。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH 部署到服务器
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd ${{ secrets.DEPLOY_DIR }}
+            bash scripts/deploy/deploy.sh

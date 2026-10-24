@@ -153,6 +153,11 @@ TargetSite ──< BacklinkTask >── Opportunity
 
 SQLite 文件保存在宿主机 `./data/backlink_manager.db`，Caddy 证书保存在 Docker volume `caddy_data`。备份时建议先停止容器，再复制整个 `data/` 目录并单独保管 `.env`；不要把 `.env` 提交进 Git。
 
+## 自动部署
+
+支持 push 到 main 自动部署（GitHub Actions + SSH）或服务器 cron 轮询两种方式，
+脚本会 git pull → 重建容器 → 健康检查失败自动回滚，详见 [docs/auto-deploy.md](docs/auto-deploy.md)。
+
 ## itch.io 新游雷达快速使用
 
 1. 首次使用登录后进入「ITCH 新游」，点击「立即抓取一轮」，系统抓取 itch 官方 RSS 并入库最近一批新游戏。
