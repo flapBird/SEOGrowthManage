@@ -56,3 +56,4 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.deploy_head

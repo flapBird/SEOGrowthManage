@@ -27,10 +27,11 @@
 
    | Secret | 值 |
    | --- | --- |
-   | `DEPLOY_HOST` | 服务器公网 IP |
-   | `DEPLOY_USER` | 服务器 SSH 用户名 |
-   | `DEPLOY_SSH_KEY` | `deploy_key` 私钥文件全文（含 BEGIN/END 行） |
-   | `DEPLOY_DIR` | 服务器上仓库绝对路径（如 `/opt/SEOGrowthManage`） |
+| `DEPLOY_HOST` | 服务器公网 IP |
+| `DEPLOY_USER` | 服务器 SSH 用户名 |
+| `DEPLOY_SSH_KEY` | `deploy_key` 私钥文件全文（含 BEGIN/END 行） |
+| `DEPLOY_DIR` | 服务器上仓库绝对路径（如 `/opt/SEOGrowthManage`） |
+| `DEPLOY_PORT`（可选） | SSH 端口，默认 22；服务器改过端口才需要 |
 
 4. 服务器安全组/防火墙放行自己的常用出口即可（SSH 22 不对公网开放也行——
    GitHub Actions 的出口 IP 段很多，最简单的做法是 22 端口对 0.0.0.0/0 开放但

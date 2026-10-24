@@ -1,13 +1,15 @@
 name: deploy
 
 # push 到 main 即自动部署：SSH 登录服务器执行 scripts/deploy/deploy.sh
-# （git pull → docker compose up -d --build → 健康检查失败自动回滚）。
-# 启用前需在 GitHub 仓库 Settings → Secrets and variables → Actions 配置：
-#   DEPLOY_HOST   服务器公网 IP
-#   DEPLOY_USER   服务器 SSH 用户（建议专用部署用户，需在 docker 组）
-#   DEPLOY_SSH_KEY部署用户的 SSH 私钥（整段，含 BEGIN/END 行）
-#   DEPLOY_DIR    服务器上仓库的绝对路径（如 /opt/SEOGrowthManage）
-# 没配密钥前本 workflow 会失败，属正常；配好即生效。也可暂时禁用本文件。
+# （fetch → 需要时 pull → docker compose up -d --build → 健康检查失败自动回滚）。
+#
+# 必需 Secrets（Settings → Secrets and variables → Actions）：
+#   DEPLOY_HOST    服务器公网 IP
+#   DEPLOY_USER    服务器 SSH 用户（需在 docker 组）
+#   DEPLOY_SSH_KEY SSH 私钥全文（含 BEGIN/END 行）
+#   DEPLOY_DIR     服务器上仓库的绝对路径（如 /opt/SEOGrowthManage）
+# 可选 Secrets：
+#   DEPLOY_PORT    SSH 端口（默认 22；服务器改过端口才需要）
 
 on:
   push:
@@ -26,9 +28,14 @@ jobs:
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_stop: true
           script: |
             cd ${{ secrets.DEPLOY_DIR }}
+            # 首次自动部署引导：服务器上还没有部署脚本时，先拉一次代码把它带下来
+            if [ ! -f scripts/deploy/deploy.sh ]; then
+              echo "[bootstrap] 服务器缺少部署脚本，先拉取最新代码"
+              git pull --ff-only origin main
+            fi
             bash scripts/deploy/deploy.sh
