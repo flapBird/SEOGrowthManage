@@ -196,6 +196,47 @@ def test_poll_feeds_daily_quota(monkeypatch):
     assert "https://froggacuda.itch.io/wizza" in urls
 
 
+def test_itch_api_games_endpoint(authenticated_client):
+    """GET /api/itch/games：按日期/状态拉取清单，供外部 skill 程序化取用。"""
+    import asyncio
+    from datetime import datetime
+
+    async def seed():
+        with SessionLocal() as db:
+            db.add_all([
+                ItchGame(url="https://a.itch.io/ready-game", title="Ready Game",
+                         status=ItchGameStatus.ready,
+                         itch_published_at=datetime(2026, 10, 7, 10, 0, 0),
+                         discovered_at=datetime(2026, 10, 7, 10, 0, 0),
+                         genre_json='["Puzzle"]', tags_json='["cozy"]', platforms_json='["HTML5"]',
+                         keywords_json='["Ready Game online"]',
+                         quality_json='{"ok": true, "notes": []}'),
+                ItchGame(url="https://b.itch.io/new-game", title="New Game",
+                         status=ItchGameStatus.new,
+                         discovered_at=datetime(2026, 10, 7, 11, 0, 0)),
+            ])
+            db.commit()
+
+    asyncio.run(seed())
+    client = authenticated_client
+    headers = {"X-API-Key": "test-itch-api-key"}
+
+    resp = client.get("/api/itch/games", params={"date": "2026-10-07", "status": "ready"}, headers=headers)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["date"] == "2026-10-07" and body["count"] == 1
+    game = body["games"][0]
+    assert game["url"] == "https://a.itch.io/ready-game"
+    assert game["status"] == "ready" and game["status_label"] == "已就绪"
+    assert game["tags"] == ["cozy"] and game["keywords"] == ["Ready Game online"]
+
+    # 不筛状态时返回全部
+    body_all = client.get("/api/itch/games", params={"date": "2026-10-07"}, headers=headers).json()
+    assert body_all["count"] == 2
+    # 错误 key → 401
+    assert client.get("/api/itch/games", headers={"X-API-Key": "bad"}).status_code == 401
+
+
 def test_itch_batch_status_and_api(authenticated_client):
     import asyncio
     from datetime import datetime

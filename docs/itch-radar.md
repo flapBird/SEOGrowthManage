@@ -33,27 +33,54 @@ itch.io「New & Popular」官方 RSS（每 5 分钟轮询，仅 1 个请求）
 - **批量标记已用**：卡片右上角有勾选框，汇总栏可「全选本页」，一键把勾选的游戏全部标记为已用；
   做完一批页面后勾选对应游戏即可，不用逐个点。
 
-## 聚合站回写接口（可选）
+## 外部 skill / 聚合站对接接口
 
-PlayBloo 批量建页后，可以调接口把游戏标记为「已用于 PlayBloo」，避免手动勾选。
+两个 HTTP 接口，让"添加游戏的 skill"或 PlayBloo 后端全自动对接，无需人工在页面上操作：
 
 - 先在服务器 `.env` 配置 `ITCH_RADAR_API_KEY=<自定义密钥>`（留空 = 接口关闭）。
-- 请求：
+- 鉴权：请求头 `X-API-Key: <密钥>`（也支持 `Authorization: Bearer <密钥>`）；
+  密钥错误 401，服务端未配置密钥 403。
 
-  ```bash
-  curl -X POST https://你的域名/api/itch/mark-used \
-       -H "X-API-Key: <ITCH_RADAR_API_KEY>" \
-       -H "Content-Type: application/json" \
-       -d '{"date": "2026-10-07"}'
-  ```
+### 1. 拉取游戏清单：`GET /api/itch/games`
+
+```bash
+curl "https://你的域名/api/itch/games?date=2026-10-11&status=ready" \
+     -H "X-API-Key: <ITCH_RADAR_API_KEY>"
+```
+
+- 参数：`date`（收录日，缺省今天/东八区）、`status`（`new`/`ready`/`used`/`skipped`，
+  缺省全部）、`limit`（默认 300，上限 300）。
+- 返回：`{"date": "...", "count": n, "games": [...]}`，每个游戏含
+  `url / title / author / cover_url / description / price / status / genres / tags /
+  platforms / screenshots / keywords / quality_ok / quality_notes / itch_published_at`。
+- 字段和页面导出的 Markdown 一致，skill 拿到即可直接生成 PlayBloo 页面。
+
+### 2. 回写标记：`POST /api/itch/mark-used`
+
+```bash
+curl -X POST https://你的域名/api/itch/mark-used \
+     -H "X-API-Key: <ITCH_RADAR_API_KEY>" \
+     -H "Content-Type: application/json" \
+     -d '{"urls": ["https://x.itch.io/a", "https://y.itch.io/b"]}'
+```
 
 - 请求体三种模式（JSON）：
-  - `{"date": "YYYY-MM-DD"}` —— 标记某一天的全部游戏；
+  - `{"date": "YYYY-MM-DD"}` —— 标记某一天收录的全部游戏；
   - `{"date": "YYYY-MM-DD", "urls": [...]}` —— 只标记当天里指定的游戏；
-  - `{"urls": [...]}` —— 按游戏页 URL 标记（自动归一化，带 query/尾斜杠都能匹配）。
+  - `{"urls": [...]}` —— 按 URL 标记（自动归一化，带 query/尾斜杠都能匹配）。
 - 返回 `{"marked": <新标记数量>, "not_found": [...]}`（not_found 仅在传 urls 时返回，
   列出库里没有的 URL）；已是"已用"状态的游戏不会重复计数。
-- 鉴权也支持 `Authorization: Bearer <key>`；密钥错误返回 401，服务端未配置密钥返回 403。
+
+### skill 的典型全自动流程
+
+```
+GET /api/itch/games?status=ready        # 拉当天可做的游戏（含关键词、质量结论）
+   ↓  skill 挑选游戏 → 生成 PlayBloo 详情页
+POST /api/itch/mark-used {"urls": [...]}  # 把刚建完页的游戏批量标记为已用
+```
+
+标记后页面上这些游戏显示"已用于 PlayBloo"，配合每日 10 款的配额，
+`status` 筛选能精确看出"今天还剩几个没做"。
 - **导出当日 Markdown**：生成一份可直接交给 AI 的材料（标题、URL、作者、
   上架时间、类型标签、简介、封面/截图、建议关键词、质量提醒），
   AI 据此为 PlayBloo 生成独立详情页。
