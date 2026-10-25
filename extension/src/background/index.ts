@@ -4,6 +4,7 @@ import { inspectOrFillCurrentForm } from "../analyzers/formFiller";
 import { inspectCurrentPageForBacklink } from "../analyzers/backlinkVerifier";
 import { detectSubmissionOutcome, inspectOrClickSubmitControl } from "../analyzers/submitController";
 import type { RuntimeRequest, RuntimeResponse } from "../messages";
+import type { SubmissionOutcomeDetection } from "../types/domain";
 import {
   getCurrentTask,
   loadSettings,
@@ -123,7 +124,7 @@ async function handleMessage(message: RuntimeRequest): Promise<unknown> {
           progressed: true,
         };
       }
-      await waitForPageResult(1600);
+      await waitForPageResult(600);
       const outcome = await detectActiveSubmissionOutcome(message.submission.sourceDomain);
       const submission = await client().then((api) => api.updateSubmission(message.submission.id, {
         status: outcome.status,
@@ -233,12 +234,19 @@ async function inspectActiveSubmit(apply: boolean, submission: { sourceDomain: s
   return result;
 }
 
-async function detectActiveSubmissionOutcome(expectedDomain: string) {
+// SPA 结果提示渲染有快有慢：固定等待会过早判成 unknown，这里改为轮询，
+// 识别到明确结果（非 unknown）立即返回，最多等 OUTCOME_POLL_TOTAL_MS。
+const OUTCOME_POLL_TOTAL_MS = 8000;
+const OUTCOME_POLL_INTERVAL_MS = 500;
+
+async function detectActiveSubmissionOutcome(expectedDomain: string): Promise<SubmissionOutcomeDetection> {
   let lastError: unknown;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
+  let lastResult: SubmissionOutcomeDetection | null = null;
+  const deadline = Date.now() + OUTCOME_POLL_TOTAL_MS;
+  while (Date.now() < deadline) {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) {
+      if (!tab?.id || !tab?.url || !/^https?:/.test(tab.url)) {
         throw new Error("提交后页面不可访问");
       }
       assertTaskPage({ sourceDomain: expectedDomain }, tab.url);
@@ -247,13 +255,15 @@ async function detectActiveSubmissionOutcome(expectedDomain: string) {
         func: detectSubmissionOutcome,
       });
       const result = results[0]?.result;
-      if (result) return result;
-      throw new Error("提交结果识别未返回结果");
+      if (!result) throw new Error("提交结果识别未返回结果");
+      lastResult = result;
+      if (result.status !== "unknown") return result;
     } catch (error) {
       lastError = error;
-      if (attempt < 2) await waitForPageResult(700);
     }
+    await waitForPageResult(OUTCOME_POLL_INTERVAL_MS);
   }
+  if (lastResult) return lastResult;
   const detail = lastError instanceof Error ? lastError.message : "页面状态未知";
   throw new Error(`提交动作已经触发，但结果页暂时无法识别：${detail}。请从 Submission 历史中人工记录结果`);
 }

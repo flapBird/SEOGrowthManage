@@ -21,7 +21,7 @@ SEO Growth Console 的本地浏览器执行端。Web 服务部署在云服务器
 - 支持原生 input/textarea/select/contenteditable，并触发 React/Vue 常用的 input/change/blur 事件。
 - 提交前识别并预览按钮，排除 Delete、Login、Cancel、Search、Subscribe 等非提交操作。
 - `Next / Continue / Get started` 只推进多步骤表单，Submission 继续保持 `prepared`。
-- 最终 Submit 必须经过浏览器二次确认；提交后识别 submitted、pending、duplicate、rejected、failed、unknown。
+- 最终 Submit 必须经过浏览器二次确认；提交后轮询页面结果（每 500ms、最多 8 秒）识别 submitted、pending、duplicate、rejected、failed、unknown。
 - 扫描当前结果页的可见链接；只有精确 Target URL 存在时才创建/关联正式 Backlink。
 - 支持 Submission 历史选择、人工纠正结果、重复验证和已发布链接失效标记。
 
