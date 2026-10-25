@@ -19,16 +19,20 @@ export function inspectOrClickSubmitControl(apply: boolean): SubmitControlResult
   };
   const classify = (label: string, element: HTMLElement): SubmitButtonCandidate => {
     const normalized = label.toLowerCase();
-    const blocked = /(delete|remove|cancel|search|subscribe|unsubscribe|login|log in|sign in|reset|back|删除|移除|取消|搜索|订阅|登录|返回)/i.test(normalized);
-    if (blocked) return { label, phase: "final", confidence: 0, selected: false, reason: "危险或非提交操作" };
+    // 英文排除词必须用词边界匹配，否则 "back" 会误伤 "Submit feedback"、"Backlink" 等正常提交按钮。
+    const blockedEnglish = /\b(?:delete|remove|cancel|search|subscribe|unsubscribe|log\s*in|sign\s*in|reset|back)\b/i.test(normalized);
+    const blockedChinese = /(删除|移除|取消|搜索|订阅|登录|返回)/.test(normalized);
+    if (blockedEnglish || blockedChinese) return { label, phase: "final", confidence: 0, selected: false, reason: "危险或非提交操作" };
     if (/(next|continue|get started|start now|下一步|继续|开始)/i.test(normalized)) {
       return { label, phase: "progress", confidence: 78, selected: false };
     }
     if (/(post\s+(comment|reply)|submit\s+(comment|review|product|listing)|publish|launch|add\s+(product|listing)|发表评论|提交评论|发布|上线)/i.test(normalized)) {
       return { label, phase: "final", confidence: 96, selected: false };
     }
-    if (/^(submit|send|reply|post|提交|发送|回复)$/i.test(normalized)) {
-      return { label, phase: "final", confidence: 88, selected: false };
+    if (/^(?:submit|send|publish|post|reply|提交|发送|发布|回复)(?:\s|$)/i.test(normalized)) {
+      // 全等匹配给更高置信度；"Submit feedback"、"Send your application" 这类前缀写法次之。
+      const exact = /^(?:submit|send|post|reply|提交|发送|回复)$/i.test(normalized);
+      return { label, phase: "final", confidence: exact ? 88 : 84, selected: false };
     }
     const input = element as HTMLInputElement;
     if (input.type === "submit") {
