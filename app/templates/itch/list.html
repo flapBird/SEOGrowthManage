@@ -64,6 +64,40 @@
   <section class="panel empty-day"><p class="empty">这一天还没有入库的游戏。可以「立即抓取一轮」，或选其他日期查看。</p></section>
 {% endfor %}
 </section>
+
+<section class="itch-keys panel">
+  <div class="itch-keys-head">
+    <h2>外部 API 密钥</h2>
+    <p class="muted">供 PlayBloo 对接的 skill 调用 <span class="code">GET /api/itch/games</span> 与 <span class="code">POST /api/itch/mark-used</span>，请求头携带 <span class="code">X-API-Key</span>。明文仅创建时显示一次，数据库只存哈希，可随时撤销；也可沿用环境变量 ITCH_RADAR_API_KEY。</p>
+  </div>
+  {% if issued_key %}
+  <div class="itch-keys-body">
+    <div class="alert warning"><strong>请立即复制密钥；关闭或刷新页面后不会再次显示。</strong></div>
+    <label>新 API 密钥<input id="issued-itch-key" class="code" value="{{ issued_key }}" readonly autocomplete="off"></label>
+    <div class="actions"><button type="button" onclick="navigator.clipboard.writeText(document.getElementById('issued-itch-key').value)">复制密钥</button></div>
+  </div>
+  {% endif %}
+  <div class="itch-keys-body">
+    <form method="post" action="/itch/api-keys" class="itch-keys-form">
+      <input type="hidden" name="back_day" value="{{ day }}">
+      <input name="name" value="PlayBloo Skill" maxlength="120" placeholder="名称，如 PlayBloo Skill" aria-label="密钥名称">
+      <input type="number" name="expires_days" value="365" min="1" max="3650" aria-label="有效天数">
+      <button class="primary" type="submit">生成密钥</button>
+    </form>
+    <ul class="itch-keys-list">
+      {% for key in api_keys %}
+      <li>
+        <div class="itch-keys-info">
+          <strong>{{ key.name }}</strong>
+          <span class="muted">{{ key.key_prefix }}… · 创建于 {{ key.created_at.strftime('%Y-%m-%d %H:%M') }} · 最近使用 {{ key.last_used_at.strftime('%Y-%m-%d %H:%M') if key.last_used_at else '从未' }} · 到期 {{ key.expires_at.strftime('%Y-%m-%d') if key.expires_at else '永不过期' }}</span>
+        </div>
+        {% if key.revoked_at %}<span class="badge itch-skipped">已撤销</span>
+        {% else %}<form method="post" action="/itch/api-keys/{{ key.id }}/revoke" onsubmit="return confirm('撤销后使用该密钥的 skill 将立即无法访问 API，确定吗？')"><button class="danger-link" type="submit">撤销</button></form>{% endif %}
+      </li>
+      {% else %}<li class="muted">尚未生成任何密钥。页面密钥与环境变量 ITCH_RADAR_API_KEY 均未配置时，API 会返回 403。</li>{% endfor %}
+    </ul>
+  </div>
+</section>
 {% if games %}
 <script>
   (function () {

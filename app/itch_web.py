@@ -18,7 +18,8 @@ from sqlalchemy.orm import Session
 from .config import get_settings
 from .database import get_db
 from .itch_radar.fetcher import enrich_game, _make_client, run_radar_cycle
-from .models import ItchGame, ItchGameStatus, now_local
+from .itch_security import issue_itch_api_key
+from .models import ItchApiKey, ItchGame, ItchGameStatus, now_local
 from .security import require_auth
 from .web import get_or_404, redirect, render
 
@@ -66,26 +67,40 @@ def _day_query(db: Session, day: date, status: str, q: str):
     ).all()
 
 
+def _itch_page_context(
+    db: Session,
+    day: date,
+    selected_status: str = "",
+    q: str = "",
+    issued_key: str | None = None,
+) -> dict:
+    games = _day_query(db, day, selected_status, q)
+    return {
+        "games": games,
+        "day": day.isoformat(),
+        "prev_day": (day - timedelta(days=1)).isoformat(),
+        "next_day": (day + timedelta(days=1)).isoformat(),
+        "q": q,
+        "selected_status": selected_status,
+        "status_labels": STATUS_LABELS,
+        "statuses": [s.value for s in ItchGameStatus],
+        "today": _shanghai_now().date().isoformat(),
+        "query_suffix": f"date={day.isoformat()}" + (f"&q={q}" if q else "") + (f"&status={selected_status}" if selected_status else ""),
+        "api_keys": db.scalars(
+            select(ItchApiKey).order_by(ItchApiKey.created_at.desc(), ItchApiKey.id.desc())
+        ).all(),
+        "issued_key": issued_key,
+    }
+
+
 @router.get("/itch", response_class=HTMLResponse)
 def itch_list(request: Request, db: Db, date: str = "", status: str = "", q: str = ""):
     day = _parse_day(date)
     selected_status = status if status in [s.value for s in ItchGameStatus] else ""
-    games = _day_query(db, day, selected_status, q)
-    prev_day = (day - timedelta(days=1)).isoformat()
-    next_day = (day + timedelta(days=1)).isoformat()
     return render(
         request,
         "itch/list.html",
-        games=games,
-        day=day.isoformat(),
-        prev_day=prev_day,
-        next_day=next_day,
-        q=q,
-        selected_status=selected_status,
-        status_labels=STATUS_LABELS,
-        statuses=[s.value for s in ItchGameStatus],
-        today=_shanghai_now().date().isoformat(),
-        query_suffix=f"date={day.isoformat()}" + (f"&q={q}" if q else "") + (f"&status={selected_status}" if selected_status else ""),
+        **_itch_page_context(db, day, selected_status, q),
     )
 
 
@@ -180,3 +195,34 @@ def itch_export(db: Db, date: str = ""):
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f"inline; filename=itch-games-{day.isoformat()}.md"},
     )
+
+
+@router.post("/itch/api-keys", response_class=HTMLResponse)
+def itch_api_key_create(
+    request: Request,
+    db: Db,
+    name: Annotated[str, Form()] = "PlayBloo Skill",
+    expires_days: Annotated[int, Form()] = 365,
+    back_day: Annotated[str, Form()] = "",
+):
+    """生成对接 /api/itch/* 的 API 密钥：明文只在返回页面上显示一次，库里只存哈希。"""
+    days = max(1, min(expires_days, 3650))
+    _model, plaintext = issue_itch_api_key(
+        db,
+        name=name,
+        expires_at=now_local() + timedelta(days=days),
+    )
+    return render(
+        request,
+        "itch/list.html",
+        **_itch_page_context(db, _parse_day(back_day), issued_key=plaintext),
+    )
+
+
+@router.post("/itch/api-keys/{key_id}/revoke")
+def itch_api_key_revoke(key_id: int, db: Db):
+    api_key = get_or_404(db, ItchApiKey, key_id)
+    if api_key.revoked_at is None:
+        api_key.revoked_at = now_local()
+        db.commit()
+    return redirect("/itch", f"API 密钥「{api_key.name}」已撤销")

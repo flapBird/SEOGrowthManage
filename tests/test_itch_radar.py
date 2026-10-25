@@ -317,3 +317,54 @@ def test_itch_list_page_and_export(authenticated_client):
     assert "https://demo.itch.io/demo-game" in body
     assert "Demo Game online" in body
     assert "UTC+8" in body
+
+
+def test_itch_api_key_page_lifecycle(authenticated_client):
+    """页面生成/撤销 API 密钥：明文仅创建后显示一次，库中只存哈希，撤销后立即失效。"""
+    import re
+
+    from app.models import ItchApiKey
+
+    client = authenticated_client
+    resp = client.post("/itch/api-keys", data={
+        "name": "PlayBloo Skill", "expires_days": "365", "back_day": "2026-10-07",
+    })
+    assert resp.status_code == 200
+    match = re.search(r'id="issued-itch-key"[^>]*value="([^"]+)"', resp.text)
+    assert match, "创建后页面应显示一次明文密钥"
+    plaintext = match.group(1)
+    assert plaintext.startswith("itch_")
+
+    with SessionLocal() as db:
+        keys = db.scalars(select(ItchApiKey)).all()
+        assert len(keys) == 1
+        assert keys[0].name == "PlayBloo Skill"
+        assert plaintext not in keys[0].key_hash  # 库里是哈希，不含明文
+
+    # 新密钥以 X-API-Key 或 Bearer 两种方式都能调 API，且记录最近使用时间
+    assert client.get("/api/itch/games", headers={"X-API-Key": plaintext}).status_code == 200
+    assert client.get(
+        "/api/itch/games", headers={"Authorization": f"Bearer {plaintext}"}
+    ).status_code == 200
+    with SessionLocal() as db:
+        assert db.scalar(select(ItchApiKey.last_used_at)) is not None
+
+    # 撤销后页面密钥立即失效，但环境变量密钥不受影响
+    with SessionLocal() as db:
+        key_id = db.scalar(select(ItchApiKey.id))
+    resp = client.post(f"/itch/api-keys/{key_id}/revoke", follow_redirects=False)
+    assert resp.status_code == 303
+    assert client.get("/api/itch/games", headers={"X-API-Key": plaintext}).status_code == 401
+    assert client.get(
+        "/api/itch/games", headers={"X-API-Key": "test-itch-api-key"}
+    ).status_code == 200
+
+
+def test_itch_api_403_when_no_key_source(authenticated_client, monkeypatch):
+    """页面密钥与环境变量都未配置时，API 返回 403 并提示去页面生成。"""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "itch_radar_api_key", "")
+    resp = authenticated_client.get("/api/itch/games")
+    assert resp.status_code == 403
+    assert "/itch" in resp.json()["detail"]

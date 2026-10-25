@@ -1,9 +1,12 @@
 """PlayBloo 等游戏聚合站的对接接口：外部 skill/程序可以拉取每日游戏清单，
 并在建页完成后把游戏标记为「已用于 PlayBloo」，全程无需人工在页面上操作。
 
-鉴权：环境变量 ITCH_RADAR_API_KEY 配置静态密钥；请求携带 X-API-Key 头（或
-Authorization: Bearer <key>）。服务端未配置密钥时整个接口返回 403 不可用，
-不影响 /itch 页面的正常使用。
+鉴权：请求携带 X-API-Key 头（或 Authorization: Bearer <key>）。密钥两个来源，
+命中任意一个即可：
+- 在 /itch 页面「外部 API 密钥」中生成（推荐：数据库只存哈希、可随时撤销，
+  无需重启服务）；
+- 环境变量 ITCH_RADAR_API_KEY（兼容早期 .env 部署方式）。
+两者都没有时接口返回 403，不影响 /itch 页面的正常使用。
 
 两个端点：
     GET  /api/itch/games?date=YYYY-MM-DD&status=ready&limit=300
@@ -17,23 +20,22 @@ Authorization: Bearer <key>）。服务端未配置密钥时整个接口返回 4
 """
 from __future__ import annotations
 
-import secrets
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .config import get_settings
 from .database import get_db
 from .itch_radar.parse import normalize_game_url
+from .itch_security import require_itch_api_key
 from .itch_web import _day_expression
 from .models import ItchGame, ItchGameStatus
 
 
-router = APIRouter(prefix="/api/itch")
+router = APIRouter(prefix="/api/itch", dependencies=[Depends(require_itch_api_key)])
 Db = Annotated[Session, Depends(get_db)]
 
 
@@ -42,21 +44,7 @@ class MarkUsedPayload(BaseModel):
     urls: list[str] = []
 
 
-def _verify_key(
-    x_api_key: Annotated[str | None, Header()] = None,
-    authorization: Annotated[str | None, Header()] = None,
-) -> None:
-    settings = get_settings()
-    if not settings.itch_radar_api_key:
-        raise HTTPException(403, "服务端未配置 ITCH_RADAR_API_KEY，回写接口不可用")
-    provided = x_api_key
-    if not provided and authorization and authorization.lower().startswith("bearer "):
-        provided = authorization.strip()[len("bearer "):].strip()
-    if not provided or not secrets.compare_digest(provided, settings.itch_radar_api_key):
-        raise HTTPException(401, "API Key 无效")
-
-
-@router.get("/games", dependencies=[Depends(_verify_key)])
+@router.get("/games")
 def list_games(db: Db, date: str = "", status: str = "", limit: int = 300):
     """按日期拉取收录的游戏清单（供外部 skill 程序化取用，替代人工导出 Markdown）。
 
@@ -92,7 +80,7 @@ def list_games(db: Db, date: str = "", status: str = "", limit: int = 300):
     return {"date": day.isoformat(), "count": len(payload), "games": payload}
 
 
-@router.post("/mark-used", dependencies=[Depends(_verify_key)])
+@router.post("/mark-used")
 def mark_used(payload: MarkUsedPayload, db: Db):
     if not payload.date and not payload.urls:
         raise HTTPException(422, "请提供 date（标记当日全部游戏）或 urls（标记指定游戏），也可两者同时提供")

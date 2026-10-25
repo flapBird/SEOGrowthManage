@@ -210,6 +210,21 @@ class ExtensionToken(Base):
     claimed_tasks: Mapped[list[BacklinkTask]] = relationship(back_populates="claimed_by_token")
 
 
+class ItchApiKey(Base):
+    """/api/itch/* 对接密钥：在 /itch 页面创建，数据库只存哈希，明文仅创建时显示一次。"""
+
+    __tablename__ = "itch_api_keys"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(120))
+    key_prefix: Mapped[str] = mapped_column(String(16), index=True)
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, index=True)
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now_local)
+
+
 class Opportunity(Base):
     __tablename__ = "opportunities"
 

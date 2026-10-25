@@ -67,3 +67,21 @@
 .itch-skipped { background: #ececec; color: #666; }
 
 .empty-day .empty { margin: 0; }
+
+/* 外部 API 密钥管理（页面底部） */
+.itch-keys { margin-top: 18px; }
+.itch-keys-head { padding: 16px 21px; border-bottom: 1px solid var(--line); }
+.itch-keys-head h2 { margin: 0 0 4px; font-size: 17px; }
+.itch-keys-head p { margin: 0; font-size: 13px; line-height: 1.6; }
+.itch-keys-head .code { font-size: 12px; }
+.itch-keys-body { padding: 16px 21px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line); }
+.itch-keys-body:last-child { border-bottom: 0; }
+.itch-keys-body .alert { margin-bottom: 0; }
+.itch-keys-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.itch-keys-form input[name="name"] { flex: 1; min-width: 200px; }
+.itch-keys-form input[type="number"] { width: 110px; }
+.itch-keys-list { list-style: none; margin: 0; padding: 0; }
+.itch-keys-list li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px dashed var(--line); }
+.itch-keys-list li:first-child { border-top: 0; padding-top: 0; }
+.itch-keys-info { display: flex; flex-direction: column; gap: 2px; }
+.itch-keys-info span { font-size: 12px; }
