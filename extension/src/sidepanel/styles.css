@@ -66,6 +66,8 @@ input:focus, select:focus, textarea:focus { border-color: #3157d5; box-shadow: 0
 .submit-candidate > div { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .submit-candidate small { color: #70798c; }
 .danger-text { color: #a22b2b; }
+.lease-warning { color: #9b5b00; }
+.lease-expired { color: #a22b2b; font-weight: 800; }
 .empty { padding: 12px 4px; color: #7a8397; font-size: 12px; text-align: center; }
 .toast { position: sticky; bottom: 10px; z-index: 10; border-radius: 10px; padding: 10px 12px; background: #172033; color: white; font-size: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.18); }
 .toast.error { background: #a72e2e; }

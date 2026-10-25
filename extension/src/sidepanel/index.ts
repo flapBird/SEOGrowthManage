@@ -141,6 +141,65 @@ elements.projectSelect.addEventListener("change", () => {
 
 void initialize();
 
+// 租约倒计时与心跳：processing 任务有 20 分钟租约，临期自动 PATCH 回 processing 续租。
+window.setInterval(refreshLeaseDisplay, 1000);
+window.setInterval(() => void heartbeatLease(), 30_000);
+
+const LEASE_RENEW_THRESHOLD_MS = 6 * 60_000;
+let heartbeatInFlight = false;
+let heartbeatFailures = 0;
+
+function leaseRemainingMs(task: BacklinkTask | null): number | null {
+  if (!task || task.status !== "processing" || !task.leaseExpiresAt) return null;
+  const expiresAt = new Date(task.leaseExpiresAt).getTime();
+  return Number.isNaN(expiresAt) ? null : expiresAt - Date.now();
+}
+
+function refreshLeaseDisplay(): void {
+  const element = document.getElementById("lease-remaining");
+  if (!element) return;
+  const remaining = leaseRemainingMs(currentTask);
+  if (remaining === null) {
+    element.textContent = "无（不占用）";
+    element.className = "";
+    return;
+  }
+  if (remaining <= 0) {
+    element.textContent = `已过期 ${formatDuration(-remaining)}，可能被其他端领取`;
+    element.className = "lease-expired";
+    return;
+  }
+  element.textContent = `剩余 ${formatDuration(remaining)}`;
+  element.className = remaining < LEASE_RENEW_THRESHOLD_MS ? "lease-warning" : "";
+}
+
+async function heartbeatLease(): Promise<void> {
+  if (heartbeatInFlight || !currentTask) return;
+  const remaining = leaseRemainingMs(currentTask);
+  if (remaining === null || remaining > LEASE_RENEW_THRESHOLD_MS) return;
+  heartbeatInFlight = true;
+  try {
+    currentTask = await send<BacklinkTask>({
+      type: "UPDATE_TASK",
+      taskId: currentTask.id,
+      input: { status: "processing" },
+    });
+    heartbeatFailures = 0;
+    // 只刷新租约行；整体重渲染会清掉正在使用的填表/提交预览状态。
+    refreshLeaseDisplay();
+  } catch (error) {
+    heartbeatFailures += 1;
+    if (heartbeatFailures === 1) showError(error);
+  } finally {
+    heartbeatInFlight = false;
+  }
+}
+
+function formatDuration(milliseconds: number): string {
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  return `${Math.floor(totalSeconds / 60)}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
 async function initialize(): Promise<void> {
   const settings = await send<PublicSettings>({ type: "GET_SETTINGS" });
   elements.baseUrl.value = settings.baseUrl;
@@ -268,6 +327,7 @@ function renderTask(task: BacklinkTask | null): void {
     <div class="details">
       <div class="detail"><span>任务</span><strong>#${task.id} · ${escapeHtml(task.workflow)}</strong></div>
       <div class="detail"><span>状态</span><strong><span class="badge">${escapeHtml(task.status)}</span></strong></div>
+      <div class="detail"><span>租约</span><strong id="lease-remaining"></strong></div>
       <div class="detail"><span>来源</span><strong>${escapeHtml(task.sourceDomain)}</strong></div>
       <div class="detail"><span>目标</span><strong>${escapeHtml(task.targetUrl)}</strong></div>
     </div>
@@ -276,6 +336,7 @@ function renderTask(task: BacklinkTask | null): void {
       <button id="skip-task" class="button">跳过任务</button>
     </div>
   `;
+  refreshLeaseDisplay();
   byId("open-task").addEventListener("click", async () => {
     try {
       await send({ type: "OPEN_TASK", task });

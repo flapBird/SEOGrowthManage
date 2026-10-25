@@ -9,6 +9,7 @@ SEO Growth Console 的本地浏览器执行端。Web 服务部署在云服务器
 - Web 控制台 `/extension` 创建/撤销 Token、创建 URL 任务、查看任务状态。
 - 数据库仅保存 Token 哈希，明文只在创建后展示一次。
 - 插件加载项目、原子领取下一任务、恢复当前任务和续租。
+- 侧栏实时显示任务租约倒计时；剩余不足 6 分钟时自动心跳续租，过期未续时提示任务可能被其他端领取。`prepared` 状态不占用租约。
 - 打开来源页面、安全预填充、创建 `prepared` Submission、跳过并释放任务。
 - 当前页面工作流、表单、登录状态、账号要求、登录阻断和 CAPTCHA 检测。
 - “Submit a product / Launch your product”一类页面优先识别为 `directory`。
@@ -86,7 +87,7 @@ Authorization: Bearer <extension-token>
 Content-Type: application/json
 ```
 
-任务领取是原子操作，并带 20 分钟租约。同一 Token 重复领取会恢复其有效租约任务；插件重新打开时会同步任务并续租。
+任务领取是原子操作，并带 20 分钟租约。同一 Token 重复领取会恢复其有效租约任务；插件重新打开时会同步任务并续租；侧栏打开期间剩余不足 6 分钟会自动续租。
 
 ## 安全边界
 
