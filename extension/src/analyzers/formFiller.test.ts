@@ -135,6 +135,107 @@ describe("inspectOrFillCurrentForm（directory 工作流）", () => {
   });
 });
 
+describe("inspectOrFillCurrentForm（directory 扩展字段）", () => {
+  it("分类下拉按项目关键词匹配选项并自动选择", () => {
+    mount(`
+      <form>
+        <label>Product name<input name="product_name"></label>
+        <label>Category
+          <select name="category">
+            <option value="">Select a category</option>
+            <option value="seo">SEO Tools</option>
+            <option value="design">Design</option>
+          </select>
+        </label>
+      </form>
+    `);
+    const result = inspectOrFillCurrentForm(makeInput(), true);
+    const category = fieldOf(result, "category");
+    expect(category?.value).toBe("SEO Tools");
+    expect(category?.willFill).toBe(true);
+    expect(document.querySelector<HTMLSelectElement>("[name=category]")?.value).toBe("seo");
+  });
+
+  it("分类未匹配关键词时作为人工字段展示且不自动选择", () => {
+    mount(`
+      <form>
+        <label>Product name<input name="product_name"></label>
+        <label>Category
+          <select name="category">
+            <option value="crypto">Crypto</option>
+            <option value="design">Design</option>
+          </select>
+        </label>
+      </form>
+    `);
+    const result = inspectOrFillCurrentForm(makeInput(), true);
+    const category = fieldOf(result, "category");
+    expect(category?.value).toBe("");
+    expect(category?.willFill).toBe(false);
+    expect(category?.reason).toContain("请人工选择");
+    expect(result.warnings.some((warning) => warning.includes("分类下拉未能自动匹配"))).toBe(true);
+    expect(document.querySelector<HTMLSelectElement>("[name=category]")?.value).toBe("crypto");
+  });
+
+  it("未勾选的条款 checkbox 会被勾选并触发事件", () => {
+    mount(`
+      <form>
+        <label>Product name<input name="product_name"></label>
+        <label><input type="checkbox" name="terms"> I agree to the terms and conditions</label>
+      </form>
+    `);
+    const checkbox = document.querySelector<HTMLInputElement>("[name=terms]");
+    const events: string[] = [];
+    checkbox?.addEventListener("input", () => events.push("input"));
+    checkbox?.addEventListener("change", () => events.push("change"));
+    const result = inspectOrFillCurrentForm(makeInput(), true);
+    expect(fieldOf(result, "terms")?.willFill).toBe(true);
+    expect(checkbox?.checked).toBe(true);
+    expect(events).toEqual(["input", "change"]);
+  });
+
+  it("已勾选的条款 checkbox 计入 matchedCount 不重复勾选", () => {
+    mount(`
+      <form>
+        <label>Product name<input name="product_name"></label>
+        <label><input type="checkbox" name="terms" checked> I agree to the terms</label>
+      </form>
+    `);
+    const result = inspectOrFillCurrentForm(makeInput(), true);
+    expect(fieldOf(result, "terms")?.matchesExpected).toBe(true);
+    expect(result.matchedCount).toBe(1);
+  });
+
+  it("社交链接字段全部作为人工字段展示并给出警告", () => {
+    mount(`
+      <form>
+        <label>Product name<input name="product_name"></label>
+        <label>Twitter URL<input name="twitter" type="text"></label>
+        <label>GitHub profile<input name="github" type="text"></label>
+      </form>
+    `);
+    const result = inspectOrFillCurrentForm(makeInput(), true);
+    const socials = result.fields.filter((field) => field.kind === "social");
+    expect(socials).toHaveLength(2);
+    expect(socials.every((field) => !field.willFill && field.reason?.includes("人工填写"))).toBe(true);
+    expect(result.warnings.some((warning) => warning.includes("社交链接"))).toBe(true);
+    expect(document.querySelector<HTMLInputElement>("[name=twitter]")?.value).toBe("");
+  });
+
+  it("检测到文件上传字段时给出人工上传警告但不阻断填写", () => {
+    mount(`
+      <form>
+        <label>Product name<input name="product_name"></label>
+        <label>Logo<input name="logo" type="file"></label>
+      </form>
+    `);
+    const result = inspectOrFillCurrentForm(makeInput(), true);
+    expect(result.warnings.some((warning) => warning.includes("文件上传"))).toBe(true);
+    expect(result.canFill).toBe(true);
+    expect(result.filledCount).toBe(1);
+  });
+});
+
 describe("inspectOrFillCurrentForm（blog_comment 工作流）", () => {
   it("无标签 textarea 按草稿识别为 comment 并填入", () => {
     mount(`<form><textarea placeholder="Join the discussion"></textarea></form>`);
@@ -147,9 +248,11 @@ describe("inspectOrFillCurrentForm（blog_comment 工作流）", () => {
     expect(document.querySelector("textarea")?.value).toBe("Great article!");
   });
 
-  it("没有草稿时 comment 字段不可填", () => {
+  it("没有草稿时 comment 字段标记为人工填写", () => {
     mount(`<form><textarea placeholder="Join the discussion"></textarea></form>`);
     const result = inspectOrFillCurrentForm(makeInput({ workflow: "blog_comment" }), false);
-    expect(fieldKinds(result)).not.toContain("comment");
+    const comment = fieldOf(result, "comment");
+    expect(comment?.willFill).toBe(false);
+    expect(comment?.reason).toContain("人工填写");
   });
 });

@@ -421,6 +421,19 @@ async function fillForm(): Promise<void> {
   }
 }
 
+const FIELD_KIND_LABELS: Record<string, string> = {
+  title: "名称",
+  name: "姓名",
+  email: "邮箱",
+  website: "网址",
+  tagline: "标语",
+  description: "描述",
+  comment: "评论",
+  category: "分类",
+  terms: "条款勾选",
+  social: "社交链接",
+};
+
 function renderFillPreview(preview: FormFillResult, check: SubmissionCheck): void {
   const warnings = [
     ...preview.warnings,
@@ -432,7 +445,7 @@ function renderFillPreview(preview: FormFillResult, check: SubmissionCheck): voi
   elements.fillContent.innerHTML = `
     <div class="details">
       <div class="detail"><span>映射置信度</span><strong>${preview.confidence}%</strong></div>
-      ${preview.fields.map((field) => `<div class="field-preview"><div><strong>${escapeHtml(field.kind)}</strong><span>${escapeHtml(field.label)}</span></div><code>${escapeHtml(field.value)}</code><small>${field.matchesExpected ? "已有目标值" : field.willFill ? `将填入 · ${field.confidence}%` : escapeHtml(field.reason || "跳过")}</small></div>`).join("")}
+      ${preview.fields.map((field) => `<div class="field-preview"><div><strong>${escapeHtml(FIELD_KIND_LABELS[field.kind] || field.kind)}</strong><span>${escapeHtml(field.label)}</span></div><code>${escapeHtml(field.value)}</code><small>${field.matchesExpected ? "已有目标值" : field.willFill ? `将填入 · ${field.confidence}%` : escapeHtml(field.reason || "跳过")}</small></div>`).join("")}
     </div>
     ${warnings.length ? `<div class="warning-list">${warnings.map((warning) => `<p>⚠ ${escapeHtml(warning)}</p>`).join("")}</div>` : ""}
     ${preview.canFill ? '<p class="summary">确认填入只会写入上面列出的空字段；现有内容不会覆盖，页面提交按钮不会被点击。</p>' : '<p class="summary danger-text">当前页面不满足安全填入条件，请人工处理。</p>'}

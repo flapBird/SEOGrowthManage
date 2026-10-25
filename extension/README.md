@@ -16,6 +16,7 @@ SEO Growth Console 的本地浏览器执行端。Web 服务部署在云服务器
 - 所有跨域 API 请求由 Background Service Worker 发出。
 - 按服务器域名和当前页面域名请求可选权限。
 - 项目资料提供 Name、Email、Website、Tagline 和长短描述。
+- Directory 常见扩展字段：分类下拉按项目关键词自动匹配（匹配不到则标记人工选择）、Terms/隐私条款 checkbox 自动勾选；Twitter/GitHub 等社交链接和 Logo 上传等插件没有资料的字段会全部列出并提示人工处理。
 - 预填前显示字段、目标值、置信度与历史重复提示。
 - 支持原生 input/textarea/select/contenteditable，并触发 React/Vue 常用的 input/change/blur 事件。
 - 提交前识别并预览按钮，排除 Delete、Login、Cancel、Search、Subscribe 等非提交操作。

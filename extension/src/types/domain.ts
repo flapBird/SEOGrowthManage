@@ -115,7 +115,17 @@ export interface SubmissionCheck {
   latestStatus?: SubmissionStatus | null;
 }
 
-export type FillFieldKind = "title" | "name" | "email" | "website" | "tagline" | "description" | "comment";
+export type FillFieldKind =
+  | "title"
+  | "name"
+  | "email"
+  | "website"
+  | "tagline"
+  | "description"
+  | "comment"
+  | "category"
+  | "terms"
+  | "social";
 
 export interface FormFillInput {
   workflow: WorkflowType;
